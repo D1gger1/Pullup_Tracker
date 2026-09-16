@@ -19,7 +19,7 @@ export function RegisterPage() {
             <main className='flex flex-1 items-center py-8'>
                 <section className='mx-auto w-full max-w-md '>
                     <div className='mb-4'>
-                        <p className='text-lime-300 text-xs font-bold py-4' > НАЧНЁМ ТРЕНИРОВКУ </p>
+                        <p className='text-lime-300 text-xs tracking-widest font-bold py-4' > НАЧНЁМ ТРЕНИРОВКУ </p>
                         <h1 className='font-bold text-3xl'>
                             {authMode === 'register' ? ' Создать аккаунт' : 'Войти в аккаунт'}
                         </h1>
@@ -39,8 +39,8 @@ export function RegisterPage() {
                             aria-pressed={authMode === 'register'}
                             onClick={() => setAuthMode('register')}
                             className={`relative z-10 rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-300 ${authMode === 'register'
-                                    ? 'text-zinc-100'
-                                    : 'text-zinc-500 hover:text-zinc-200'
+                                ? 'text-zinc-100'
+                                : 'text-zinc-500 hover:text-zinc-200'
                                 }`}
                         >
                             Регистрация
@@ -51,8 +51,8 @@ export function RegisterPage() {
                             aria-pressed={authMode === 'login'}
                             onClick={() => setAuthMode('login')}
                             className={`relative z-10 rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-300 ${authMode === 'login'
-                                    ? 'text-zinc-100'
-                                    : 'text-zinc-500 hover:text-zinc-200'
+                                ? 'text-zinc-100'
+                                : 'text-zinc-500 hover:text-zinc-200'
                                 }`}
                         >
                             Войти
@@ -76,6 +76,7 @@ export function RegisterPage() {
                             <input type="password"
                                 id="password"
                                 name="password"
+                                placeholder='Введите пароль'
                                 autoComplete={
                                     authMode === 'register' ? 'new-password' : 'current-password'
                                 }
@@ -92,7 +93,5 @@ export function RegisterPage() {
                 </section>
             </main>
         </div>
-
-
     )
 }
