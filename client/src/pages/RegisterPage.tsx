@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 
 export function RegisterPage() {
     const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+    }
+
     return (
         <div className='flex min-h-screen flex-col bg-zinc-950 px-10 py-6 text-zinc-100'>
             <header className='flex items-center gap-3 '>
@@ -58,7 +65,7 @@ export function RegisterPage() {
                             Войти
                         </button>
                     </div>
-                    <form className="mt-6 space-y-4">
+                    <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
                         <div className='space-y-2'>
                             <label htmlFor="email" className="block text-sm font-medium text-zinc-300">Email</label>
                             <input
@@ -67,8 +74,11 @@ export function RegisterPage() {
                                 name="email"
                                 autoComplete="email"
                                 placeholder="you@example.com"
+                                value={email}
+                                onChange={(event) => setEmail(event.target.value)}
                                 required
                                 className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-lime-300" />
+
                         </div>
 
                         <div className="space-y-2">
@@ -76,6 +86,8 @@ export function RegisterPage() {
                             <input type="password"
                                 id="password"
                                 name="password"
+                                value={password}
+                                onChange={(event) => setPassword(event.target.value)}
                                 placeholder='Введите пароль'
                                 autoComplete={
                                     authMode === 'register' ? 'new-password' : 'current-password'
@@ -87,7 +99,7 @@ export function RegisterPage() {
                             type="submit"
                             className="h-12 w-full rounded-xl bg-lime-300 px-4 text-sm font-bold text-zinc-950 transition-colors hover:bg-lime-200 active:bg-lime-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
                         >
-                            {authMode === 'register' ? 'Создать аккаунт' : 'Войти'}
+                            {authMode === 'register' ? 'Создать аккаунт' : 'Войти в аккаунт'}
                         </button>
                     </form>
                 </section>
