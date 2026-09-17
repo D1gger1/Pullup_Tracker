@@ -1,13 +1,69 @@
 import { useState, type FormEvent } from 'react';
-
+type AuthResponse = {
+    message?: string;
+    token?: string;
+    error?: string;
+};
 
 export function RegisterPage() {
     const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setErrorMessage('');
+        setSuccessMessage('');
+        setIsSubmitting(true);
+
+        const endpoint =
+            authMode === 'register'
+                ? '/api/auth/register'
+                : '/api/auth/login';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    password,
+                }),
+            });
+
+            const data: AuthResponse = await response.json();
+            if (!response.ok) {
+                setErrorMessage(data.error ?? 'Не удалось выполнить запрос');
+                return;
+            }
+
+            if (authMode === 'register') {
+                setSuccessMessage('Аккаунт создан. Теперь войдите.');
+                setAuthMode('login');
+                setPassword('');
+            } else {
+                if (!data.token) {
+                    setErrorMessage('Сервер не вернул токен');
+                    return;
+                }
+
+                localStorage.setItem('pullupTrackerToken', data.token);
+                setPassword('');
+                setSuccessMessage('Вход выполнен успешно.')
+            }
+
+        } catch (err) {
+            console.error('Network error', err);
+            setErrorMessage('Не удалось связаться с сервером');
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -97,10 +153,31 @@ export function RegisterPage() {
                         </div>
                         <button
                             type="submit"
-                            className="h-12 w-full rounded-xl bg-lime-300 px-4 text-sm font-bold text-zinc-950 transition-colors hover:bg-lime-200 active:bg-lime-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
+                            disabled={isSubmitting}
+                            className="h-12 w-full rounded-xl bg-lime-300 px-4 text-sm font-bold text-zinc-950 transition-colors hover:bg-lime-200 active:bg-lime-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {authMode === 'register' ? 'Создать аккаунт' : 'Войти в аккаунт'}
+                            {isSubmitting
+                                ? 'Подождите...'
+                                : authMode === 'register'
+                                    ? 'Создать аккаунт'
+                                    : 'Войти в аккаунт'}
                         </button>
+                        {errorMessage && (
+                            <p
+                                role="alert"
+                                className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+                            >
+                                {errorMessage}
+                            </p>
+                        )}
+                        {successMessage && (
+                            <p
+                                role="status"
+                                className="rounded-xl border border-lime-300/30 bg-lime-300/10 px-4 py-3 text-sm text-lime-300"
+                            >
+                                {successMessage}
+                            </p>
+                        )}
                     </form>
                 </section>
             </main>
