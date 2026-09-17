@@ -9,6 +9,7 @@ export function RegisterPage() {
     const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [name, setName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
@@ -25,16 +26,25 @@ export function RegisterPage() {
                 ? '/api/auth/register'
                 : '/api/auth/login';
 
+        const requestBody = 
+        authMode === 'register'
+        ? {
+            name: name.trim(),
+            email,
+            password,
+        }
+        : {
+            email, 
+            password
+        };
+
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    email,
-                    password,
-                }),
+                body: JSON.stringify({requestBody}),
             });
 
             const data: AuthResponse = await response.json();
@@ -46,6 +56,7 @@ export function RegisterPage() {
             if (authMode === 'register') {
                 setSuccessMessage('Аккаунт создан. Теперь войдите.');
                 setAuthMode('login');
+                setName('');
                 setPassword('');
             } else {
                 if (!data.token) {
@@ -122,6 +133,30 @@ export function RegisterPage() {
                         </button>
                     </div>
                     <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+                        {authMode === 'register' && (
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="name"
+                                    className="block text-sm font-medium text-zinc-300"
+                                >
+                                    Имя
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    autoComplete="name"
+                                    placeholder="Ваше имя"
+                                    value={name}
+                                    onChange={(event) => setName(event.target.value)}
+                                    minLength={2}
+                                    maxLength={40}
+                                    required
+                                    className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-lime-300"
+                                />
+                            </div>
+                        )}
                         <div className='space-y-2'>
                             <label htmlFor="email" className="block text-sm font-medium text-zinc-300">Email</label>
                             <input
