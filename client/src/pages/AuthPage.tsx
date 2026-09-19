@@ -5,7 +5,7 @@ type AuthResponse = {
     error?: string;
 };
 
-export function RegisterPage() {
+export function AuthPage() {
     const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
