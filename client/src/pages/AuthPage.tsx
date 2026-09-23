@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react';
+
+import { useNavigate } from 'react-router-dom';
 type AuthResponse = {
     message?: string;
     token?: string;
@@ -13,6 +15,7 @@ export function AuthPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const navigate = useNavigate();
 
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -44,7 +47,7 @@ export function AuthPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({requestBody}),
+                body: JSON.stringify(requestBody),
             });
 
             const data: AuthResponse = await response.json();
@@ -66,7 +69,8 @@ export function AuthPage() {
 
                 localStorage.setItem('pullupTrackerToken', data.token);
                 setPassword('');
-                setSuccessMessage('Вход выполнен успешно.')
+                
+                navigate('/' , {replace: true});
             }
 
         } catch (err) {
@@ -178,6 +182,7 @@ export function AuthPage() {
                                 id="password"
                                 name="password"
                                 value={password}
+                                minLength={6}
                                 onChange={(event) => setPassword(event.target.value)}
                                 placeholder='Введите пароль'
                                 autoComplete={
