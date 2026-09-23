@@ -2,15 +2,15 @@ import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 
 type ProtectedRouteProps = {
-    children: ReactNode;
-}
+  children: ReactNode;
+};
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-    const token = localStorage.getItem('pullupTrackerToken');
+  const token = localStorage.getItem('pullupTrackerToken');
 
-    if (!token) {
-        return <Navigate to='/auth' replace />
-    }
+  if (!token) {
+    return <Navigate to="/auth" replace />;
+  }
 
-    return children;
+  return children;
 }
