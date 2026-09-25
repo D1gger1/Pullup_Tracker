@@ -5,45 +5,23 @@ import { HistoryPage } from './pages/HistoryPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RecordsPage } from './pages/RecordsPage';
+import { AppLayout } from './components/AppLayout';
 
 function App() {
   return (
     <Routes>
       <Route
-        path="/"
         element={
           <ProtectedRoute>
-            <HomePage />
+            <AppLayout />
           </ProtectedRoute>
         }
-      />
-
-      <Route
-        path="/history"
-        element={
-          <ProtectedRoute>
-            <HistoryPage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/progress"
-        element={
-          <ProtectedRoute>
-            <ProgressPage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/records"
-        element={
-          <ProtectedRoute>
-            <RecordsPage />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route index element={<HomePage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="progress" element={<ProgressPage />} />
+        <Route path="records" element={<RecordsPage />} />
+      </Route>
 
       <Route path="/auth" element={<AuthPage />} />
 
