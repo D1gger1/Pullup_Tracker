@@ -4,7 +4,7 @@ export function MobileNavigation() {
   return (
     <nav
       aria-label="Основная навигация"
-      className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t border-zinc-800 bg-zinc-950"
+      className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t border-zinc-800 bg-zinc-950 md:hidden"
     >
       <NavLink
         to="/"
