@@ -1,10 +1,73 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+
+type PullupSet = {
+  _id: string;
+  reps: number;
+  performedAt: string;
+};
+
+type DailyStats = {
+  totalReps: number;
+  sets: PullupSet[];
+};
 
 export function HomePage() {
   const [reps, setReps] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [statsError, setStatsError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [statsVersion, setStatsVersion] = useState('');
+  const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDailyStats() {
+      const token = localStorage.getItem('pullupTrackerToken');
+
+      if (!token) {
+        if (!cancelled) {
+          setStatsError('Войдите в аккаунт, чтобы увидеть статистику.');
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/pullups/stats/daily', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setStatsError(data.message ?? 'Не удалось загрузить статистику.');
+          }
+          return;
+        }
+        if (!cancelled) {
+          setDailyStats(data);
+          setStatsError('');
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+
+        if (!cancelled) {
+          setStatsError('Не удалось загрузить статистику. Проверь соединение.');
+        }
+      }
+    }
+
+    void loadDailyStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [statsVersion]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -12,6 +75,7 @@ export function HomePage() {
     if (isSubmitting) return;
     setErrorMessage('');
     setSuccessMessage('');
+    setStatsVersion((previous) => previous + 1);
 
     const repetitions = Number(reps);
     const token = localStorage.getItem('pullupTrackerToken');
@@ -57,6 +121,21 @@ export function HomePage() {
         <h2 className="text-sm font-medium text-zinc-400">Текущая серия</h2>
         <p className="mt-3 text-4xl font-bold text-lime-300">3 дня</p>
         <p className="mt-2 text-sm text-zinc-400">Дни подряд с записанными подходами</p>
+      </section>
+      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="text-lg font-semibold">Сегодня</h2>
+        {statsError ? (
+          <p role="alert" className="mt-3 text-sm text-red-300">
+            {statsError}
+          </p>
+        ) : dailyStats !== null ? (
+          <div className="mt-3 space-y-2">
+            <p>Повторений: {dailyStats.totalReps}</p>
+            <p>Подходов: {dailyStats.sets.length}</p>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-400">Загружаем статистику...</p>
+        )}
       </section>
       <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-lg font-semibold">Добавить подход</h2>
