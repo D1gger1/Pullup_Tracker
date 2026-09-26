@@ -17,7 +17,7 @@ export function HomePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [statsError, setStatsError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [statsVersion, setStatsVersion] = useState('');
+  const [statsVersion, setStatsVersion] = useState(0);
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
 
   useEffect(() => {
@@ -75,7 +75,6 @@ export function HomePage() {
     if (isSubmitting) return;
     setErrorMessage('');
     setSuccessMessage('');
-    setStatsVersion((previous) => previous + 1);
 
     const repetitions = Number(reps);
     const token = localStorage.getItem('pullupTrackerToken');
@@ -103,6 +102,7 @@ export function HomePage() {
       }
       setSuccessMessage(`Подход сохранён. Повторений: ${repetitions}`);
       setReps('');
+      setStatsVersion((previous) => previous + 1);
     } catch (error) {
       console.error('Ошибка запроса или чтения ответа:', error);
       setErrorMessage('Не удалось получить ответ сервера. Проверь соединение.');
@@ -130,8 +130,29 @@ export function HomePage() {
           </p>
         ) : dailyStats !== null ? (
           <div className="mt-3 space-y-2">
+            {dailyStats.sets.length === 0 && (
+              <p className="text-sm text-zinc-400">
+                Сегодня подходов пока нет. Запиши первый ниже.
+              </p>
+            )}
             <p>Повторений: {dailyStats.totalReps}</p>
             <p>Подходов: {dailyStats.sets.length}</p>
+            <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
+              {dailyStats.sets.map((set) => (
+                <li
+                  key={set._id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-zinc-950 px-4 py-3 text-sm"
+                >
+                  <span>Повторений: {set.reps} </span>
+                  <time dateTime={set.performedAt} className="text-zinc-400">
+                    {new Date(set.performedAt).toLocaleTimeString('ru-RU', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </time>
+                </li>
+              ))}
+            </ul>
           </div>
         ) : (
           <p className="mt-3 text-sm text-zinc-400">Загружаем статистику...</p>
