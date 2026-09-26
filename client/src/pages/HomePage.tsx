@@ -19,9 +19,50 @@ export function HomePage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [statsVersion, setStatsVersion] = useState(0);
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
+  const [currentStreak, setCurrentStreak] = useState<number | null>(null);
+  const [streakError, setStreakError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
+
+    async function loadCurrentStreak() {
+      const token = localStorage.getItem('pullupTrackerToken');
+
+      if (!token) {
+        if (!cancelled) {
+          setStreakError('Войдите в аккаунт, чтобы увидеть статистику.');
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/pullups/stats/streak', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setStreakError(data.message ?? 'Не удалось загрузить серию.');
+          }
+
+          return;
+        }
+        if (!cancelled) {
+          setCurrentStreak(data.currentStreak);
+          setStreakError('');
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки серии:', error);
+
+        if (!cancelled) {
+          setStreakError('Не удалось загрузить серию. Проверь соединение.');
+        }
+      }
+    }
 
     async function loadDailyStats() {
       const token = localStorage.getItem('pullupTrackerToken');
@@ -62,6 +103,7 @@ export function HomePage() {
       }
     }
 
+    void loadCurrentStreak();
     void loadDailyStats();
 
     return () => {
@@ -119,7 +161,15 @@ export function HomePage() {
 
       <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-sm font-medium text-zinc-400">Текущая серия</h2>
-        <p className="mt-3 text-4xl font-bold text-lime-300">3 дня</p>
+        {streakError ? (
+          <p role="alert" className="mt-3 text-sm text-red-300">
+            {streakError}
+          </p>
+        ) : currentStreak !== null ? (
+          <p className="mt-3 text-4xl font-bold text-lime-300">Дней подряд: {currentStreak}</p>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-400">Загружаем серию...</p>
+        )}
         <p className="mt-2 text-sm text-zinc-400">Дни подряд с записанными подходами</p>
       </section>
       <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
