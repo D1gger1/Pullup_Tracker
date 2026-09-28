@@ -6,6 +6,7 @@ const {
   getDailyStats,
   getWeeklyStats,
   getCurrentStreak,
+  getSummaryStats,
 } = require("../controllers/pullupController");
 const authToken = require("../middleware/auth");
 
@@ -14,5 +15,6 @@ router.get("/", authToken, getPullupSet);
 router.get("/stats/daily", authToken, getDailyStats);
 router.get("/stats/weekly", authToken, getWeeklyStats);
 router.get("/stats/streak", authToken, getCurrentStreak);
+router.get("/stats/summary", authToken, getSummaryStats);
 
 module.exports = router;

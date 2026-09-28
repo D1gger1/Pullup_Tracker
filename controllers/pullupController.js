@@ -108,10 +108,37 @@ async function getCurrentStreak(req, res) {
   }
 }
 
+async function getSummaryStats(req, res) {
+  try {
+    const userId = req.user.userId;
+    const sets = await PullupSet.find({ userId }).select("reps performedAt");
+
+    const bestSet = sets.reduce((maxReps, set) => {
+      return Math.max(maxReps, set.reps);
+    }, 0);
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const monthlyReps = sets
+      .filter((set) => {
+        const date = new Date(set.performedAt);
+        return date >= startOfMonth && date < startOfNextMonth;
+      })
+      .reduce((sum, set) => sum + set.reps, 0);
+
+    res.status(200).json({ monthlyReps, bestSet });
+  } catch (error) {
+    res.status(500).json({ message: "Не удалось загрузить общую статистику" });
+  }
+}
+
 module.exports = {
   addPullupSet,
   getPullupSet,
   getDailyStats,
   getWeeklyStats,
   getCurrentStreak,
+  getSummaryStats,
 };

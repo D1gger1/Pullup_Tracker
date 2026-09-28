@@ -11,6 +11,11 @@ type DailyStats = {
   sets: PullupSet[];
 };
 
+type SummaryStats = {
+  monthlyReps: number;
+  bestSet: number;
+};
+
 export function HomePage() {
   const [reps, setReps] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,9 +26,50 @@ export function HomePage() {
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [currentStreak, setCurrentStreak] = useState<number | null>(null);
   const [streakError, setStreakError] = useState('');
+  const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null);
+  const [summaryError, setSummaryError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
+
+    async function loadSummaryStats() {
+      const token = localStorage.getItem('pullupTrackerToken');
+
+      if (!token) {
+        if (!cancelled) {
+          setSummaryError('Войдите в аккаунт, чтобы увидеть показатели.');
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/pullups/stats/summary', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setSummaryError(data.message ?? 'Не удалось загрузить показатели.');
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setSummaryStats(data);
+          setSummaryError('');
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки показателей:', error);
+
+        if (!cancelled) {
+          setSummaryError('Не удалось загрузить показатели. Проверь соединение.');
+        }
+      }
+    }
 
     async function loadCurrentStreak() {
       const token = localStorage.getItem('pullupTrackerToken');
@@ -105,6 +151,7 @@ export function HomePage() {
 
     void loadCurrentStreak();
     void loadDailyStats();
+    void loadSummaryStats();
 
     return () => {
       cancelled = true;
@@ -158,56 +205,6 @@ export function HomePage() {
       <h1 className="text-3xl font-bold text-lime-300">Обзор</h1>
 
       <p className="mt-3 text-zinc-400">Каждый подход — шаг вперёд. Запиши свой результат</p>
-
-      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-sm font-medium text-zinc-400">Текущая серия</h2>
-        {streakError ? (
-          <p role="alert" className="mt-3 text-sm text-red-300">
-            {streakError}
-          </p>
-        ) : currentStreak !== null ? (
-          <p className="mt-3 text-4xl font-bold text-lime-300">Дней подряд: {currentStreak}</p>
-        ) : (
-          <p className="mt-3 text-sm text-zinc-400">Загружаем серию...</p>
-        )}
-        <p className="mt-2 text-sm text-zinc-400">Дни подряд с записанными подходами</p>
-      </section>
-      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold">Сегодня</h2>
-        {statsError ? (
-          <p role="alert" className="mt-3 text-sm text-red-300">
-            {statsError}
-          </p>
-        ) : dailyStats !== null ? (
-          <div className="mt-3 space-y-2">
-            {dailyStats.sets.length === 0 && (
-              <p className="text-sm text-zinc-400">
-                Сегодня подходов пока нет. Запиши первый ниже.
-              </p>
-            )}
-            <p>Повторений: {dailyStats.totalReps}</p>
-            <p>Подходов: {dailyStats.sets.length}</p>
-            <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
-              {dailyStats.sets.map((set) => (
-                <li
-                  key={set._id}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-zinc-950 px-4 py-3 text-sm"
-                >
-                  <span>Повторений: {set.reps} </span>
-                  <time dateTime={set.performedAt} className="text-zinc-400">
-                    {new Date(set.performedAt).toLocaleTimeString('ru-RU', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </time>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-zinc-400">Загружаем статистику...</p>
-        )}
-      </section>
       <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-lg font-semibold">Добавить подход</h2>
         <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
@@ -247,6 +244,102 @@ export function HomePage() {
           )}
         </form>
       </section>
+      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="text-sm font-medium text-zinc-400">Текущая серия</h2>
+        {streakError ? (
+          <p role="alert" className="mt-3 text-sm text-red-300">
+            {streakError}
+          </p>
+        ) : currentStreak !== null ? (
+          <p className="mt-3 text-4xl font-bold text-lime-300">Дней подряд: {currentStreak}</p>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-400">Загружаем серию...</p>
+        )}
+        <p className="mt-2 text-sm text-zinc-400">Дни подряд с записанными подходами</p>
+      </section>
+      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Сегодня</h2>
+          {dailyStats !== null && !statsError && (
+            <span className="text-xs text-zinc-400">Подходов: {dailyStats.sets.length}</span>
+          )}
+        </div>
+
+        {statsError ? (
+          <p role="alert" className="mt-4 text-sm text-red-300">
+            {statsError}
+          </p>
+        ) : dailyStats !== null ? (
+          <div className="mt-4">
+            {dailyStats.sets.length === 0 ? (
+              <div className="flex min-h-32 items-center justify-center text-center">
+                <p className="text-sm text-zinc-400">
+                  Сегодня подходов пока нет. Добавь первый подход.
+                </p>
+              </div>
+            ) : (
+              <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
+                {dailyStats.sets.map((set, index) => (
+                  <li
+                    key={set._id}
+                    className="flex items-center gap-3 rounded-xl border border-zinc-800 px-4 py-3"
+                  >
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-800 text-xs font-semibold text-zinc-400">
+                      {index + 1}
+                    </span>
+
+                    <div className="flex flex-1 items-baseline gap-2">
+                      <span className="text-xl font-bold text-zinc-100 tabular-nums">
+                        {set.reps}
+                      </span>
+                      <span className="text-xs text-zinc-400">повт.</span>
+                    </div>
+
+                    <time
+                      dateTime={set.performedAt}
+                      className="shrink-0 text-xs text-zinc-500 tabular-nums"
+                    >
+                      {new Date(set.performedAt).toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="mt-5 border-t border-zinc-800 pt-4">
+              <p className="text-xs text-zinc-400">Всего повторений сегодня</p>
+              <p className="mt-1 text-2xl font-bold text-zinc-100">{dailyStats.totalReps}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-zinc-400">Загружаем статистику...</p>
+        )}
+      </section>
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        {summaryError && (
+          <p role="alert" className="col-span-2 text-sm text-red-300">
+            {summaryError}
+          </p>
+        )}
+
+        <section className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+          <h2 className="text-sm font-medium text-zinc-400">Повторений за месяц</h2>
+          <p className="mt-3 text-3xl font-bold text-zinc-100">
+            {summaryError ? '—' : (summaryStats?.monthlyReps ?? '…')}
+          </p>
+        </section>
+
+        <section className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+          <h2 className="text-sm font-medium text-zinc-400">Лучший подход</h2>
+          <p className="mt-3 text-3xl font-bold text-zinc-100">
+            {summaryError ? '—' : (summaryStats?.bestSet ?? '…')}
+          </p>
+          <p className="mt-2 text-xs text-zinc-400">За всё время</p>
+        </section>
+      </div>
     </main>
   );
 }
