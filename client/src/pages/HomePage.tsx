@@ -20,14 +20,28 @@ export function HomePage() {
   const [reps, setReps] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [statsError, setStatsError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
   const [statsVersion, setStatsVersion] = useState(0);
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
+  const [statsError, setStatsError] = useState('');
+
   const [currentStreak, setCurrentStreak] = useState<number | null>(null);
   const [streakError, setStreakError] = useState('');
+
   const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null);
   const [summaryError, setSummaryError] = useState('');
+
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [editedReps, setEditedReps] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  const [deletingSetId, setDeletingSetId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const isBusy = isSubmitting || isUpdating || isDeleting;
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +90,7 @@ export function HomePage() {
 
       if (!token) {
         if (!cancelled) {
-          setStreakError('Войдите в аккаунт, чтобы увидеть статистику.');
+          setStreakError('Войдите в аккаунт, чтобы увидеть серию.');
         }
         return;
       }
@@ -94,9 +108,9 @@ export function HomePage() {
           if (!cancelled) {
             setStreakError(data.message ?? 'Не удалось загрузить серию.');
           }
-
           return;
         }
+
         if (!cancelled) {
           setCurrentStreak(data.currentStreak);
           setStreakError('');
@@ -122,7 +136,6 @@ export function HomePage() {
 
       try {
         const response = await fetch('/api/pullups/stats/daily', {
-          method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -136,6 +149,7 @@ export function HomePage() {
           }
           return;
         }
+
         if (!cancelled) {
           setDailyStats(data);
           setStatsError('');
@@ -158,17 +172,180 @@ export function HomePage() {
     };
   }, [statsVersion]);
 
+  function startEditing(set: PullupSet) {
+    if (isBusy) return;
+
+    setDeletingSetId(null);
+    setDeleteError('');
+
+    setEditingSetId(set._id);
+    setEditedReps(String(set.reps));
+    setEditError('');
+  }
+
+  function cancelEditing() {
+    if (isBusy) return;
+
+    setEditingSetId(null);
+    setEditedReps('');
+    setEditError('');
+  }
+
+  function startDeleting(id: string) {
+    if (isBusy) return;
+
+    setEditingSetId(null);
+    setEditedReps('');
+    setEditError('');
+
+    setDeletingSetId(id);
+    setDeleteError('');
+  }
+
+  function cancelDeleting() {
+    if (isBusy) return;
+
+    setDeletingSetId(null);
+    setDeleteError('');
+  }
+
+  async function handleUpdateSet(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isBusy || editingSetId === null) return;
+
+    setEditError('');
+
+    const repetitions = Number(editedReps);
+
+    if (!Number.isInteger(repetitions) || repetitions < 1) {
+      setEditError('Введите целое число больше нуля.');
+      return;
+    }
+
+    const token = localStorage.getItem('pullupTrackerToken');
+
+    if (!token) {
+      setEditError('Нужно войти в аккаунт.');
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      const response = await fetch(`/api/pullups/${editingSetId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reps: repetitions }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setEditError(data.message ?? 'Не удалось изменить подход.');
+        return;
+      }
+
+      setDailyStats((previous) => {
+        if (previous === null) return previous;
+
+        const updatedSets = previous.sets.map((item) =>
+          item._id === data._id ? { ...item, reps: data.reps } : item,
+        );
+
+        return {
+          ...previous,
+          sets: updatedSets,
+          totalReps: updatedSets.reduce((sum, item) => sum + item.reps, 0),
+        };
+      });
+
+      setEditingSetId(null);
+      setEditedReps('');
+      setStatsVersion((previous) => previous + 1);
+    } catch (error) {
+      console.error('Ошибка изменения подхода:', error);
+      setEditError('Не удалось получить ответ сервера. Проверь соединение.');
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  async function handleDeleteSet() {
+    if (isBusy || deletingSetId === null) return;
+
+    setDeleteError('');
+
+    const token = localStorage.getItem('pullupTrackerToken');
+
+    if (!token) {
+      setDeleteError('Нужно войти в аккаунт.');
+      return;
+    }
+
+    const idToDelete = deletingSetId;
+
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/pullups/${idToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setDeleteError(data.message ?? 'Не удалось удалить подход.');
+        return;
+      }
+
+      setDailyStats((previous) => {
+        if (previous === null) return previous;
+
+        const remainingSets = previous.sets.filter((item) => item._id !== idToDelete);
+
+        return {
+          ...previous,
+          sets: remainingSets,
+          totalReps: remainingSets.reduce((sum, item) => sum + item.reps, 0),
+        };
+      });
+
+      setDeletingSetId(null);
+      setStatsVersion((previous) => previous + 1);
+    } catch (error) {
+      console.error('Ошибка удаления подхода:', error);
+      setDeleteError('Не удалось получить ответ сервера. Проверь соединение.');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (isSubmitting) return;
+    if (isBusy) return;
+
     setErrorMessage('');
     setSuccessMessage('');
 
     const repetitions = Number(reps);
+
+    if (!Number.isInteger(repetitions) || repetitions < 1) {
+      setErrorMessage('Введите целое число больше нуля.');
+      return;
+    }
+
     const token = localStorage.getItem('pullupTrackerToken');
+
     if (!token) {
-      setErrorMessage('Нужно войти в аккаунт');
+      setErrorMessage('Нужно войти в аккаунт.');
       return;
     }
 
@@ -183,12 +360,14 @@ export function HomePage() {
         },
         body: JSON.stringify({ reps: repetitions }),
       });
+
       const data = await response.json();
 
       if (!response.ok) {
-        setErrorMessage(data.message ?? 'Не удалось сохранить подход');
+        setErrorMessage(data.message ?? 'Не удалось сохранить подход.');
         return;
       }
+
       setSuccessMessage(`Подход сохранён. Повторений: ${repetitions}`);
       setReps('');
       setStatsVersion((previous) => previous + 1);
@@ -205,38 +384,44 @@ export function HomePage() {
       <h1 className="text-3xl font-bold text-lime-300">Обзор</h1>
 
       <p className="mt-3 text-zinc-400">Каждый подход — шаг вперёд. Запиши свой результат</p>
+
       <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-lg font-semibold">Добавить подход</h2>
+
         <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label htmlFor="reps" className="block text-sm font-medium text-zinc-300">
               Количество повторений
             </label>
+
             <input
               type="number"
               id="reps"
               name="reps"
               value={reps}
               onChange={(event) => setReps(event.target.value)}
-              disabled={isSubmitting}
+              disabled={isBusy}
               min={1}
               step={1}
               required
-              className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 text-sm text-zinc-100 transition-colors outline-none focus:border-lime-300"
+              className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 text-sm text-zinc-100 transition-colors outline-none focus:border-lime-300 disabled:opacity-60"
             />
           </div>
+
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isBusy}
             className="h-12 w-full rounded-xl bg-lime-300 px-4 text-sm font-bold text-zinc-950 transition-colors hover:bg-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 active:bg-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? 'Сохраняем...' : 'Сохранить подход'}
           </button>
+
           {errorMessage && (
             <p role="alert" className="text-sm text-red-300">
               {errorMessage}
             </p>
           )}
+
           {successMessage && (
             <p role="status" className="text-sm text-lime-300">
               {successMessage}
@@ -244,8 +429,10 @@ export function HomePage() {
           )}
         </form>
       </section>
+
       <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-sm font-medium text-zinc-400">Текущая серия</h2>
+
         {streakError ? (
           <p role="alert" className="mt-3 text-sm text-red-300">
             {streakError}
@@ -255,11 +442,14 @@ export function HomePage() {
         ) : (
           <p className="mt-3 text-sm text-zinc-400">Загружаем серию...</p>
         )}
+
         <p className="mt-2 text-sm text-zinc-400">Дни подряд с записанными подходами</p>
       </section>
+
       <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Сегодня</h2>
+
           {dailyStats !== null && !statsError && (
             <span className="text-xs text-zinc-400">Подходов: {dailyStats.sets.length}</span>
           )}
@@ -280,30 +470,139 @@ export function HomePage() {
             ) : (
               <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
                 {dailyStats.sets.map((set, index) => (
-                  <li
-                    key={set._id}
-                    className="flex items-center gap-3 rounded-xl border border-zinc-800 px-4 py-3"
-                  >
-                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-800 text-xs font-semibold text-zinc-400">
-                      {index + 1}
-                    </span>
+                  <li key={set._id} className="rounded-xl border border-zinc-800 px-4 py-3">
+                    {editingSetId === set._id ? (
+                      <form onSubmit={handleUpdateSet} className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-800 text-xs font-semibold text-zinc-400">
+                            {index + 1}
+                          </span>
 
-                    <div className="flex flex-1 items-baseline gap-2">
-                      <span className="text-xl font-bold text-zinc-100 tabular-nums">
-                        {set.reps}
-                      </span>
-                      <span className="text-xs text-zinc-400">повт.</span>
-                    </div>
+                          <label
+                            htmlFor={`edit-reps-${set._id}`}
+                            className="flex-1 text-sm text-zinc-300"
+                          >
+                            Повторений
+                          </label>
 
-                    <time
-                      dateTime={set.performedAt}
-                      className="shrink-0 text-xs text-zinc-500 tabular-nums"
-                    >
-                      {new Date(set.performedAt).toLocaleTimeString('ru-RU', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </time>
+                          <input
+                            id={`edit-reps-${set._id}`}
+                            type="number"
+                            min={1}
+                            step={1}
+                            required
+                            value={editedReps}
+                            onChange={(event) => setEditedReps(event.target.value)}
+                            disabled={isBusy}
+                            aria-invalid={Boolean(editError)}
+                            aria-describedby={editError ? `edit-error-${set._id}` : undefined}
+                            className="h-11 w-20 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-base text-zinc-100 outline-none focus:border-lime-300 disabled:opacity-60"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="submit"
+                            disabled={isBusy}
+                            className="min-h-11 rounded-lg bg-lime-300 px-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isUpdating ? 'Сохраняем...' : 'Сохранить'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={cancelEditing}
+                            disabled={isBusy}
+                            className="min-h-11 rounded-lg border border-zinc-700 px-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Отмена
+                          </button>
+                        </div>
+
+                        {editError && (
+                          <p
+                            id={`edit-error-${set._id}`}
+                            role="alert"
+                            className="text-sm text-red-300"
+                          >
+                            {editError}
+                          </p>
+                        )}
+                      </form>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-800 text-xs font-semibold text-zinc-400">
+                          {index + 1}
+                        </span>
+
+                        <div className="flex flex-1 items-baseline gap-2">
+                          <span className="text-xl font-bold text-zinc-100 tabular-nums">
+                            {set.reps}
+                          </span>
+                          <span className="text-xs text-zinc-400">повт.</span>
+                        </div>
+
+                        <time
+                          dateTime={set.performedAt}
+                          className="shrink-0 text-xs text-zinc-500 tabular-nums"
+                        >
+                          {new Date(set.performedAt).toLocaleTimeString('ru-RU', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </time>
+
+                        <button
+                          type="button"
+                          onClick={() => startEditing(set)}
+                          disabled={isBusy}
+                          className="min-h-11 shrink-0 rounded-lg px-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Изменить
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => startDeleting(set._id)}
+                          disabled={isBusy}
+                          className="min-h-11 rounded-lg px-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 focus-visible:outline-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Удалить
+                        </button>
+
+                        {deletingSetId === set._id && (
+                          <div className="w-full space-y-2">
+                            <p className="text-sm text-zinc-300">Удалить этот подход?</p>
+
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={handleDeleteSet}
+                                disabled={isBusy}
+                                className="min-h-11 rounded-lg bg-red-500 px-3 text-sm font-semibold text-white transition-colors hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isDeleting ? 'Удаляем...' : 'Да, удалить'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={cancelDeleting}
+                                disabled={isBusy}
+                                className="min-h-11 rounded-lg px-3 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Отмена
+                              </button>
+                            </div>
+
+                            {deleteError && (
+                              <p role="alert" className="text-sm text-red-300">
+                                {deleteError}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -318,6 +617,7 @@ export function HomePage() {
           <p className="mt-4 text-sm text-zinc-400">Загружаем статистику...</p>
         )}
       </section>
+
       <div className="mt-6 grid grid-cols-2 gap-3">
         {summaryError && (
           <p role="alert" className="col-span-2 text-sm text-red-300">

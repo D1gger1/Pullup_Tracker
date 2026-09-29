@@ -133,6 +133,66 @@ async function getSummaryStats(req, res) {
     res.status(500).json({ message: "Не удалось загрузить общую статистику" });
   }
 }
+async function updatePullupSet(req, res) {
+  try {
+    const { id } = req.params;
+    const { reps } = req.body;
+    const userId = req.user.userId;
+
+    if (!/^[a-fA-F0-9]{24}$/.test(id)) {
+      return res.status(400).json({
+        message: "Некорректный идентификатор подхода.",
+      });
+    }
+
+    if (!Number.isInteger(reps) || reps < 1) {
+      return res.status(400).json({
+        message: "Количество повторений должно быть целым числом больше нуля.",
+      });
+    }
+
+    const updatedSet = await PullupSet.findOneAndUpdate(
+      { _id: id, userId },
+      { $set: { reps } },
+      { new: true, runValidators: true },
+    );
+
+    if (!updatedSet) {
+      return res.status(404).json({
+        message: "Подход не найден.",
+      });
+    }
+
+    return res.status(200).json(updatedSet);
+  } catch (error) {
+    res.status(500).json({ message: "Не удалось изменить подход." });
+  }
+}
+
+async function deletePullupSet(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    if (!/^[a-fA-F0-9]{24}$/.test(id)) {
+      return res.status(400).json({
+        message: "Некорректный идентификатор подхода.",
+      });
+    }
+
+    const deleteSet = await PullupSet.findOneAndDelete({
+      _id: id,
+      userId,
+    });
+
+    if (!deleteSet) {
+      return res.status(404).json({ message: "Подход не найден" });
+    }
+    return res.status(200).json({ message: "Подход удалён." });
+  } catch (error) {
+    res.status(500).json({ message: "Не удалось удалить подход" });
+  }
+}
 
 module.exports = {
   addPullupSet,
@@ -141,4 +201,6 @@ module.exports = {
   getWeeklyStats,
   getCurrentStreak,
   getSummaryStats,
+  updatePullupSet,
+  deletePullupSet,
 };
