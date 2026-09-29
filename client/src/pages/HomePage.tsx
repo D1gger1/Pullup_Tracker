@@ -1,15 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-
-type PullupSet = {
-  _id: string;
-  reps: number;
-  performedAt: string;
-};
-
-type DailyStats = {
-  totalReps: number;
-  sets: PullupSet[];
-};
+import { StreakCard } from '../components/home/StreakCard';
+import { SummaryCards } from '../components/home/SummaryCards';
+import { AddSetForm } from '../components/home/AddSetForm';
+import { PullupSetItem } from '../components/home/PullupSetItem';
+import { TodayStats } from '../components/home/TodayStats';
+import type { PullupSet, DailyStats } from '../types/pullup';
 
 type SummaryStats = {
   monthlyReps: number;
@@ -385,261 +380,46 @@ export function HomePage() {
 
       <p className="mt-3 text-zinc-400">Каждый подход — шаг вперёд. Запиши свой результат</p>
 
-      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold">Добавить подход</h2>
+      <AddSetForm
+        reps={reps}
+        isBusy={isBusy}
+        isSubmitting={isSubmitting}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+        onRepsChange={setReps}
+        onSubmit={handleSubmit}
+      />
 
-        <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <label htmlFor="reps" className="block text-sm font-medium text-zinc-300">
-              Количество повторений
-            </label>
+      <StreakCard currentStreak={currentStreak} streakError={streakError} />
 
-            <input
-              type="number"
-              id="reps"
-              name="reps"
-              value={reps}
-              onChange={(event) => setReps(event.target.value)}
-              disabled={isBusy}
-              min={1}
-              step={1}
-              required
-              className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 text-sm text-zinc-100 transition-colors outline-none focus:border-lime-300 disabled:opacity-60"
+      <TodayStats dailyStats={dailyStats} statsError={statsError}>
+        <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
+          {dailyStats?.sets.map((set, index) => (
+            <PullupSetItem
+              key={set._id}
+              set={set}
+              index={index}
+              isEditing={editingSetId === set._id}
+              editedReps={editedReps}
+              editError={editError}
+              isConfirmingDelete={deletingSetId === set._id}
+              deleteError={deleteError}
+              isBusy={isBusy}
+              isUpdating={isUpdating}
+              isDeleting={isDeleting}
+              onStartEditing={() => startEditing(set)}
+              onEditedRepsChange={setEditedReps}
+              onUpdate={handleUpdateSet}
+              onCancelEditing={cancelEditing}
+              onStartDeleting={() => startDeleting(set._id)}
+              onDelete={handleDeleteSet}
+              onCancelDeleting={cancelDeleting}
             />
-          </div>
+          ))}
+        </ul>
+      </TodayStats>
 
-          <button
-            type="submit"
-            disabled={isBusy}
-            className="h-12 w-full rounded-xl bg-lime-300 px-4 text-sm font-bold text-zinc-950 transition-colors hover:bg-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 active:bg-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isSubmitting ? 'Сохраняем...' : 'Сохранить подход'}
-          </button>
-
-          {errorMessage && (
-            <p role="alert" className="text-sm text-red-300">
-              {errorMessage}
-            </p>
-          )}
-
-          {successMessage && (
-            <p role="status" className="text-sm text-lime-300">
-              {successMessage}
-            </p>
-          )}
-        </form>
-      </section>
-
-      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-sm font-medium text-zinc-400">Текущая серия</h2>
-
-        {streakError ? (
-          <p role="alert" className="mt-3 text-sm text-red-300">
-            {streakError}
-          </p>
-        ) : currentStreak !== null ? (
-          <p className="mt-3 text-4xl font-bold text-lime-300">Дней подряд: {currentStreak}</p>
-        ) : (
-          <p className="mt-3 text-sm text-zinc-400">Загружаем серию...</p>
-        )}
-
-        <p className="mt-2 text-sm text-zinc-400">Дни подряд с записанными подходами</p>
-      </section>
-
-      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Сегодня</h2>
-
-          {dailyStats !== null && !statsError && (
-            <span className="text-xs text-zinc-400">Подходов: {dailyStats.sets.length}</span>
-          )}
-        </div>
-
-        {statsError ? (
-          <p role="alert" className="mt-4 text-sm text-red-300">
-            {statsError}
-          </p>
-        ) : dailyStats !== null ? (
-          <div className="mt-4">
-            {dailyStats.sets.length === 0 ? (
-              <div className="flex min-h-32 items-center justify-center text-center">
-                <p className="text-sm text-zinc-400">
-                  Сегодня подходов пока нет. Добавь первый подход.
-                </p>
-              </div>
-            ) : (
-              <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
-                {dailyStats.sets.map((set, index) => (
-                  <li key={set._id} className="rounded-xl border border-zinc-800 px-4 py-3">
-                    {editingSetId === set._id ? (
-                      <form onSubmit={handleUpdateSet} className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-800 text-xs font-semibold text-zinc-400">
-                            {index + 1}
-                          </span>
-
-                          <label
-                            htmlFor={`edit-reps-${set._id}`}
-                            className="flex-1 text-sm text-zinc-300"
-                          >
-                            Повторений
-                          </label>
-
-                          <input
-                            id={`edit-reps-${set._id}`}
-                            type="number"
-                            min={1}
-                            step={1}
-                            required
-                            value={editedReps}
-                            onChange={(event) => setEditedReps(event.target.value)}
-                            disabled={isBusy}
-                            aria-invalid={Boolean(editError)}
-                            aria-describedby={editError ? `edit-error-${set._id}` : undefined}
-                            className="h-11 w-20 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-base text-zinc-100 outline-none focus:border-lime-300 disabled:opacity-60"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="submit"
-                            disabled={isBusy}
-                            className="min-h-11 rounded-lg bg-lime-300 px-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isUpdating ? 'Сохраняем...' : 'Сохранить'}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={cancelEditing}
-                            disabled={isBusy}
-                            className="min-h-11 rounded-lg border border-zinc-700 px-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Отмена
-                          </button>
-                        </div>
-
-                        {editError && (
-                          <p
-                            id={`edit-error-${set._id}`}
-                            role="alert"
-                            className="text-sm text-red-300"
-                          >
-                            {editError}
-                          </p>
-                        )}
-                      </form>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-800 text-xs font-semibold text-zinc-400">
-                          {index + 1}
-                        </span>
-
-                        <div className="flex flex-1 items-baseline gap-2">
-                          <span className="text-xl font-bold text-zinc-100 tabular-nums">
-                            {set.reps}
-                          </span>
-                          <span className="text-xs text-zinc-400">повт.</span>
-                        </div>
-
-                        <time
-                          dateTime={set.performedAt}
-                          className="shrink-0 text-xs text-zinc-500 tabular-nums"
-                        >
-                          {new Date(set.performedAt).toLocaleTimeString('ru-RU', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </time>
-
-                        <button
-                          type="button"
-                          onClick={() => startEditing(set)}
-                          disabled={isBusy}
-                          className="min-h-11 shrink-0 rounded-lg px-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Изменить
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => startDeleting(set._id)}
-                          disabled={isBusy}
-                          className="min-h-11 rounded-lg px-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 focus-visible:outline-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Удалить
-                        </button>
-
-                        {deletingSetId === set._id && (
-                          <div className="w-full space-y-2">
-                            <p className="text-sm text-zinc-300">Удалить этот подход?</p>
-
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={handleDeleteSet}
-                                disabled={isBusy}
-                                className="min-h-11 rounded-lg bg-red-500 px-3 text-sm font-semibold text-white transition-colors hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {isDeleting ? 'Удаляем...' : 'Да, удалить'}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={cancelDeleting}
-                                disabled={isBusy}
-                                className="min-h-11 rounded-lg px-3 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                Отмена
-                              </button>
-                            </div>
-
-                            {deleteError && (
-                              <p role="alert" className="text-sm text-red-300">
-                                {deleteError}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="mt-5 border-t border-zinc-800 pt-4">
-              <p className="text-xs text-zinc-400">Всего повторений сегодня</p>
-              <p className="mt-1 text-2xl font-bold text-zinc-100">{dailyStats.totalReps}</p>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-zinc-400">Загружаем статистику...</p>
-        )}
-      </section>
-
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        {summaryError && (
-          <p role="alert" className="col-span-2 text-sm text-red-300">
-            {summaryError}
-          </p>
-        )}
-
-        <section className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="text-sm font-medium text-zinc-400">Повторений за месяц</h2>
-          <p className="mt-3 text-3xl font-bold text-zinc-100">
-            {summaryError ? '—' : (summaryStats?.monthlyReps ?? '…')}
-          </p>
-        </section>
-
-        <section className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="text-sm font-medium text-zinc-400">Лучший подход</h2>
-          <p className="mt-3 text-3xl font-bold text-zinc-100">
-            {summaryError ? '—' : (summaryStats?.bestSet ?? '…')}
-          </p>
-          <p className="mt-2 text-xs text-zinc-400">За всё время</p>
-        </section>
-      </div>
+      <SummaryCards summaryError={summaryError} summaryStats={summaryStats} />
     </main>
   );
 }
