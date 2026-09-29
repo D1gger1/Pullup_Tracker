@@ -116,23 +116,55 @@ export function PullupSetItem({
             })}
           </time>
 
-          <button
-            type="button"
-            onClick={onStartEditing}
-            disabled={isBusy}
-            className="min-h-11 shrink-0 rounded-lg px-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Изменить
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={onStartEditing}
+              disabled={isBusy}
+              aria-label="Изменить количество повторений"
+              title="Изменить"
+              className="grid size-11 place-items-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-4"
+              >
+                <path d="m16 4 4 4" />
+                <path d="m4 16 12-12a2.83 2.83 0 0 1 4 4L8 20l-5 1 1-5Z" />
+              </svg>
+            </button>
 
-          <button
-            type="button"
-            onClick={onStartDeleting}
-            disabled={isBusy}
-            className="min-h-11 rounded-lg px-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 focus-visible:outline-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Удалить
-          </button>
+            <button
+              type="button"
+              onClick={onStartDeleting}
+              disabled={isBusy}
+              aria-label="Удалить подход"
+              title="Удалить"
+              className="grid size-11 place-items-center rounded-lg text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 focus-visible:outline-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-4"
+              >
+                <path d="M3 6h18" />
+                <path d="M9 6V4h6v2" />
+                <path d="m5 6 1 14h12l1-14" />
+                <path d="M10 10v6M14 10v6" />
+              </svg>
+            </button>
+          </div>
 
           {isConfirmingDelete && (
             <div className="w-full space-y-2">

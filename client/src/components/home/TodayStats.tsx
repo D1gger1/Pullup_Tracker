@@ -9,9 +9,9 @@ type TodayStatsProps = {
 
 export function TodayStats({ dailyStats, statsError, children }: TodayStatsProps) {
   return (
-    <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+    <section className="mt-4 rounded-2xl border border-zinc-800/60 bg-zinc-900 p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Сегодня</h2>
+        <h2 className="text-sm font-semibold">Сегодня</h2>
 
         {dailyStats !== null && !statsError && (
           <span className="text-xs text-zinc-400">Подходов: {dailyStats.sets.length}</span>

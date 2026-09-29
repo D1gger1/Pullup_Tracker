@@ -375,10 +375,12 @@ export function HomePage() {
   }
 
   return (
-    <main className="p-6">
-      <h1 className="text-3xl font-bold text-lime-300">Обзор</h1>
+    <main className="px-4 py-6">
+      <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Обзор</h1>
 
-      <p className="mt-3 text-zinc-400">Каждый подход — шаг вперёд. Запиши свой результат</p>
+      <p className="mt-1 text-sm text-zinc-400">
+        Каждый подход — шаг вперёд. Запиши свой результат
+      </p>
 
       <AddSetForm
         reps={reps}
