@@ -375,53 +375,56 @@ export function HomePage() {
   }
 
   return (
-    <main className="px-4 py-6">
+    <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
       <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Обзор</h1>
 
       <p className="mt-1 text-sm text-zinc-400">
         Каждый подход — шаг вперёд. Запиши свой результат
       </p>
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        <div>
+          <AddSetForm
+            reps={reps}
+            isBusy={isBusy}
+            isSubmitting={isSubmitting}
+            errorMessage={errorMessage}
+            successMessage={successMessage}
+            onRepsChange={setReps}
+            onSubmit={handleSubmit}
+          />
+          <StreakCard currentStreak={currentStreak} streakError={streakError} />
+        </div>
+        <div>
+          <TodayStats dailyStats={dailyStats} statsError={statsError}>
+            <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
+              {dailyStats?.sets.map((set, index) => (
+                <PullupSetItem
+                  key={set._id}
+                  set={set}
+                  index={index}
+                  isEditing={editingSetId === set._id}
+                  editedReps={editedReps}
+                  editError={editError}
+                  isConfirmingDelete={deletingSetId === set._id}
+                  deleteError={deleteError}
+                  isBusy={isBusy}
+                  isUpdating={isUpdating}
+                  isDeleting={isDeleting}
+                  onStartEditing={() => startEditing(set)}
+                  onEditedRepsChange={setEditedReps}
+                  onUpdate={handleUpdateSet}
+                  onCancelEditing={cancelEditing}
+                  onStartDeleting={() => startDeleting(set._id)}
+                  onDelete={handleDeleteSet}
+                  onCancelDeleting={cancelDeleting}
+                />
+              ))}
+            </ul>
+          </TodayStats>
 
-      <AddSetForm
-        reps={reps}
-        isBusy={isBusy}
-        isSubmitting={isSubmitting}
-        errorMessage={errorMessage}
-        successMessage={successMessage}
-        onRepsChange={setReps}
-        onSubmit={handleSubmit}
-      />
-
-      <StreakCard currentStreak={currentStreak} streakError={streakError} />
-
-      <TodayStats dailyStats={dailyStats} statsError={statsError}>
-        <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
-          {dailyStats?.sets.map((set, index) => (
-            <PullupSetItem
-              key={set._id}
-              set={set}
-              index={index}
-              isEditing={editingSetId === set._id}
-              editedReps={editedReps}
-              editError={editError}
-              isConfirmingDelete={deletingSetId === set._id}
-              deleteError={deleteError}
-              isBusy={isBusy}
-              isUpdating={isUpdating}
-              isDeleting={isDeleting}
-              onStartEditing={() => startEditing(set)}
-              onEditedRepsChange={setEditedReps}
-              onUpdate={handleUpdateSet}
-              onCancelEditing={cancelEditing}
-              onStartDeleting={() => startDeleting(set._id)}
-              onDelete={handleDeleteSet}
-              onCancelDeleting={cancelDeleting}
-            />
-          ))}
-        </ul>
-      </TodayStats>
-
-      <SummaryCards summaryError={summaryError} summaryStats={summaryStats} />
+          <SummaryCards summaryError={summaryError} summaryStats={summaryStats} />
+        </div>
+      </div>
     </main>
   );
 }
