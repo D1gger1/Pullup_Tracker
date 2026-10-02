@@ -10,7 +10,6 @@ type HistoryDay = {
 export function HistoryPage() {
   const [sets, setSets] = useState<PullupSet[]>([]);
 
-  // Отдельные состояния загрузки и ошибки.
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -115,7 +114,7 @@ export function HistoryPage() {
           <p className="text-sm text-zinc-400">История пока пустая.</p>
         </section>
       ) : (
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 grid gap-4 space-y-4 lg:grid-cols-2 lg:items-start">
           {historyDays.map((day) => (
             <section key={day.date} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
               <div className="flex items-start justify-between gap-4">
@@ -132,7 +131,7 @@ export function HistoryPage() {
                 </div>
               </div>
 
-              <ul className="mt-4 space-y-2 border-t border-zinc-800 pt-4">
+              <ul className="mt-4 space-y-2 border-t border-zinc-800 pt-4 lg:max-h-80 lg:overflow-y-auto lg:pr-2">
                 {day.sets.map((set, index) => (
                   <li
                     key={set._id}
