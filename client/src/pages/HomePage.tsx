@@ -3,8 +3,8 @@ import { StreakCard } from '../components/home/StreakCard';
 import { SummaryCards } from '../components/home/SummaryCards';
 import { AddSetForm } from '../components/home/AddSetForm';
 import { PullupSetItem } from '../components/home/PullupSetItem';
-import { TodayStats } from '../components/home/TodayStats';
-import type { PullupSet, DailyStats } from '../types/pullup';
+import { CurrentWorkoutCard } from '../components/home/CurrentWorkoutCard';
+import type { CurrentWorkout, PullupSet } from '../types/pullup';
 
 type SummaryStats = {
   monthlyReps: number;
@@ -18,8 +18,6 @@ export function HomePage() {
   const [successMessage, setSuccessMessage] = useState('');
 
   const [statsVersion, setStatsVersion] = useState(0);
-  const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
-  const [statsError, setStatsError] = useState('');
 
   const [currentStreak, setCurrentStreak] = useState<number | null>(null);
   const [streakError, setStreakError] = useState('');
@@ -36,10 +34,55 @@ export function HomePage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  const isBusy = isSubmitting || isUpdating || isDeleting;
+  const [currentWorkout, setCurrentWorkout] = useState<CurrentWorkout | null>(null);
+  const [workoutError, setWorkoutError] = useState('');
+  const [isFinishingWorkout, setIsFinishingWorkout] = useState(false);
+
+  const isBusy = isSubmitting || isUpdating || isDeleting || isFinishingWorkout;
 
   useEffect(() => {
     let cancelled = false;
+
+    async function loadCurrentWorkout() {
+      const token = localStorage.getItem('pullupTrackerToken');
+
+      if (!token) {
+        if (!cancelled) {
+          setWorkoutError('Нужно войти в аккаунт.');
+        }
+
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/workouts/current', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setWorkoutError(data.message ?? 'Не удалось загрузить текущую тренировку.');
+          }
+
+          return;
+        }
+
+        if (!cancelled) {
+          setCurrentWorkout(data);
+          setWorkoutError('');
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки текущей тренировки:', error);
+
+        if (!cancelled) {
+          setWorkoutError('Не удалось загрузить тренировку. Проверь соединение.');
+        }
+      }
+    }
 
     async function loadSummaryStats() {
       const token = localStorage.getItem('pullupTrackerToken');
@@ -48,6 +91,7 @@ export function HomePage() {
         if (!cancelled) {
           setSummaryError('Войдите в аккаунт, чтобы увидеть показатели.');
         }
+
         return;
       }
 
@@ -64,6 +108,7 @@ export function HomePage() {
           if (!cancelled) {
             setSummaryError(data.message ?? 'Не удалось загрузить показатели.');
           }
+
           return;
         }
 
@@ -87,6 +132,7 @@ export function HomePage() {
         if (!cancelled) {
           setStreakError('Войдите в аккаунт, чтобы увидеть серию.');
         }
+
         return;
       }
 
@@ -103,6 +149,7 @@ export function HomePage() {
           if (!cancelled) {
             setStreakError(data.message ?? 'Не удалось загрузить серию.');
           }
+
           return;
         }
 
@@ -119,60 +166,63 @@ export function HomePage() {
       }
     }
 
-    async function loadDailyStats() {
-      const token = localStorage.getItem('pullupTrackerToken');
-
-      if (!token) {
-        if (!cancelled) {
-          setStatsError('Войдите в аккаунт, чтобы увидеть статистику.');
-        }
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/pullups/stats/daily', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (!cancelled) {
-            setStatsError(data.message ?? 'Не удалось загрузить статистику.');
-          }
-          return;
-        }
-
-        if (!cancelled) {
-          setDailyStats(data);
-          setStatsError('');
-        }
-      } catch (error) {
-        console.error('Ошибка загрузки статистики:', error);
-
-        if (!cancelled) {
-          setStatsError('Не удалось загрузить статистику. Проверь соединение.');
-        }
-      }
-    }
-
     void loadCurrentStreak();
-    void loadDailyStats();
     void loadSummaryStats();
+    void loadCurrentWorkout();
 
     return () => {
       cancelled = true;
     };
   }, [statsVersion]);
 
+  async function handleFinishWorkout() {
+    if (!currentWorkout?.workout || isFinishingWorkout) return;
+
+    const token = localStorage.getItem('pullupTrackerToken');
+
+    if (!token) {
+      setWorkoutError('Нужно войти в аккаунт.');
+      return;
+    }
+
+    setWorkoutError('');
+    setIsFinishingWorkout(true);
+
+    try {
+      const response = await fetch(`/api/workouts/${currentWorkout.workout._id}/finish`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setWorkoutError(data.message ?? 'Не удалось завершить тренировку.');
+        return;
+      }
+
+      setCurrentWorkout({
+        workout: null,
+        sets: [],
+        totalReps: 0,
+      });
+
+      setStatsVersion((previous) => previous + 1);
+    } catch (error) {
+      console.error('Ошибка завершения тренировки:', error);
+      setWorkoutError('Не удалось получить ответ сервера. Проверь соединение.');
+    } finally {
+      setIsFinishingWorkout(false);
+    }
+  }
+
   function startEditing(set: PullupSet) {
     if (isBusy) return;
 
     setDeletingSetId(null);
     setDeleteError('');
-
     setEditingSetId(set._id);
     setEditedReps(String(set.reps));
     setEditError('');
@@ -192,7 +242,6 @@ export function HomePage() {
     setEditingSetId(null);
     setEditedReps('');
     setEditError('');
-
     setDeletingSetId(id);
     setDeleteError('');
   }
@@ -234,7 +283,9 @@ export function HomePage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ reps: repetitions }),
+        body: JSON.stringify({
+          reps: repetitions,
+        }),
       });
 
       const data = await response.json();
@@ -243,20 +294,6 @@ export function HomePage() {
         setEditError(data.message ?? 'Не удалось изменить подход.');
         return;
       }
-
-      setDailyStats((previous) => {
-        if (previous === null) return previous;
-
-        const updatedSets = previous.sets.map((item) =>
-          item._id === data._id ? { ...item, reps: data.reps } : item,
-        );
-
-        return {
-          ...previous,
-          sets: updatedSets,
-          totalReps: updatedSets.reduce((sum, item) => sum + item.reps, 0),
-        };
-      });
 
       setEditingSetId(null);
       setEditedReps('');
@@ -300,18 +337,6 @@ export function HomePage() {
         return;
       }
 
-      setDailyStats((previous) => {
-        if (previous === null) return previous;
-
-        const remainingSets = previous.sets.filter((item) => item._id !== idToDelete);
-
-        return {
-          ...previous,
-          sets: remainingSets,
-          totalReps: remainingSets.reduce((sum, item) => sum + item.reps, 0),
-        };
-      });
-
       setDeletingSetId(null);
       setStatsVersion((previous) => previous + 1);
     } catch (error) {
@@ -353,7 +378,9 @@ export function HomePage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ reps: repetitions }),
+        body: JSON.stringify({
+          reps: repetitions,
+        }),
       });
 
       const data = await response.json();
@@ -381,8 +408,9 @@ export function HomePage() {
       <p className="mt-1 text-sm text-zinc-400">
         Каждый подход — шаг вперёд. Запиши свой результат
       </p>
-      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-        <div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-3 lg:items-stretch">
+        <div className="lg:col-span-2 lg:flex">
           <AddSetForm
             reps={reps}
             isBusy={isBusy}
@@ -392,12 +420,19 @@ export function HomePage() {
             onRepsChange={setReps}
             onSubmit={handleSubmit}
           />
-          <StreakCard currentStreak={currentStreak} streakError={streakError} />
         </div>
-        <div>
-          <TodayStats dailyStats={dailyStats} statsError={statsError}>
-            <ul className="max-h-64 space-y-2 overflow-y-auto pr-2">
-              {dailyStats?.sets.map((set, index) => (
+
+        <div className="space-y-4">
+          <StreakCard currentStreak={currentStreak} streakError={streakError} />
+
+          <CurrentWorkoutCard
+            currentWorkout={currentWorkout}
+            workoutError={workoutError}
+            isFinishing={isFinishingWorkout}
+            onFinish={handleFinishWorkout}
+          >
+            <ul className="space-y-2">
+              {currentWorkout?.sets.map((set, index) => (
                 <PullupSetItem
                   key={set._id}
                   set={set}
@@ -420,11 +455,11 @@ export function HomePage() {
                 />
               ))}
             </ul>
-          </TodayStats>
-
-          <SummaryCards summaryError={summaryError} summaryStats={summaryStats} />
+          </CurrentWorkoutCard>
         </div>
       </div>
+
+      <SummaryCards summaryError={summaryError} summaryStats={summaryStats} />
     </main>
   );
 }

@@ -19,7 +19,7 @@ export function AddSetForm({
   onSubmit,
 }: AddSetFormProps) {
   return (
-    <section className="mt-4 rounded-2xl border border-zinc-800/60 bg-zinc-900 p-5">
+    <section className="w-full rounded-2xl border border-zinc-800/60 bg-zinc-900 p-5">
       <p className="text-[10px] font-extrabold tracking-[0.18em] text-lime-300 uppercase">
         Быстрый подход
       </p>

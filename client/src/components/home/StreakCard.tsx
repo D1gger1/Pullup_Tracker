@@ -5,7 +5,7 @@ type StreakCardProps = {
 
 export function StreakCard({ currentStreak, streakError }: StreakCardProps) {
   return (
-    <section className="mt-4 flex items-center gap-4 rounded-2xl border border-zinc-800/60 bg-zinc-900 p-4">
+    <section className="flex items-center gap-4 rounded-2xl border border-zinc-800/60 bg-zinc-900 p-4">
       <div
         aria-hidden="true"
         className="grid size-11 shrink-0 place-items-center rounded-xl border border-lime-300/15 bg-lime-300/5 text-lime-300"

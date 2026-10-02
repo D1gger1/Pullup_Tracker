@@ -1,15 +1,41 @@
 const PullupSet = require("../models/PullupSet");
+const Workout = require("../models/Workout");
 
 async function addPullupSet(req, res) {
   try {
     const { reps } = req.body;
     const userId = req.user.userId;
 
-    const newPullupSet = new PullupSet({ userId, reps });
-    await newPullupSet.save();
-    res.status(201).json(newPullupSet);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+    if (!Number.isInteger(reps) || reps < 1) {
+      return res.status(400).json({
+        message: "Количество повторений должно быть целым числом больше нуля.",
+      });
+    }
+
+    let activeWorkout = await Workout.findOne({
+      userId,
+      status: "active",
+    }).sort({ startedAt: -1 });
+
+    if (!activeWorkout) {
+      activeWorkout = await Workout.create({
+        userId,
+      });
+    }
+
+    const newPullupSet = await PullupSet.create({
+      userId,
+      workoutId: activeWorkout._id,
+      reps,
+    });
+
+    return res.status(201).json(newPullupSet);
+  } catch (error) {
+    console.error("Ошибка создания подхода:", error);
+
+    return res.status(500).json({
+      message: "Не удалось сохранить подход.",
+    });
   }
 }
 
