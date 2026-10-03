@@ -9,6 +9,7 @@ import type { CurrentWorkout, PullupSet } from '../types/pullup';
 type SummaryStats = {
   monthlyReps: number;
   bestSet: number;
+  completedWorkouts: number;
 };
 
 export function HomePage() {

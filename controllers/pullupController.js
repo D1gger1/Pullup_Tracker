@@ -147,6 +147,11 @@ async function getSummaryStats(req, res) {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
+    const completedWorkouts = await Workout.countDocuments({
+      userId,
+      status: "completed",
+    });
+
     const monthlyReps = sets
       .filter((set) => {
         const date = new Date(set.performedAt);
@@ -154,7 +159,7 @@ async function getSummaryStats(req, res) {
       })
       .reduce((sum, set) => sum + set.reps, 0);
 
-    res.status(200).json({ monthlyReps, bestSet });
+    res.status(200).json({ monthlyReps, bestSet, completedWorkouts });
   } catch (error) {
     res.status(500).json({ message: "Не удалось загрузить общую статистику" });
   }
