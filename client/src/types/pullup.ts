@@ -24,3 +24,15 @@ export type CurrentWorkout = {
   sets: PullupSet[];
   totalReps: number;
 };
+
+export type CompletedWorkout = {
+  _id: string;
+  userId: string;
+  status: 'completed';
+  startedAt: string;
+  finishedAt: string;
+  sets: PullupSet[];
+  setsCount: number;
+  totalReps: number;
+  durationMinutes: number;
+};

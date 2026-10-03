@@ -87,7 +87,76 @@ async function finishWorkout(req, res) {
   }
 }
 
+async function getCompletedWorkouts(req, res) {
+  try {
+    const userId = req.user.userId;
+
+    const workouts = await Workout.find({
+      userId,
+      status: "completed",
+      finishedAt: { $ne: null },
+    })
+      .sort({ finishedAt: -1 })
+      .lean();
+
+    if (workouts.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    const workoutIds = workouts.map((workout) => workout._id);
+
+    const sets = await PullupSet.find({
+      userId,
+      workoutId: { $in: workoutIds },
+    })
+      .sort({ performedAt: 1 })
+      .lean();
+
+    const setsByWorkout = new Map();
+
+    for (const set of sets) {
+      const workoutId = String(set.workoutId);
+      const workoutSets = setsByWorkout.get(workoutId) ?? [];
+
+      workoutSets.push(set);
+      setsByWorkout.set(workoutId, workoutSets);
+    }
+
+    const completedWorkouts = workouts.map((workout) => {
+      const workoutSets = setsByWorkout.get(String(workout._id)) ?? [];
+
+      const totalReps = workoutSets.reduce((sum, set) => sum + set.reps, 0);
+
+      const durationMilliseconds =
+        new Date(workout.finishedAt).getTime() -
+        new Date(workout.startedAt).getTime();
+
+      const durationMinutes = Math.max(
+        1,
+        Math.ceil(durationMilliseconds / 60000),
+      );
+
+      return {
+        ...workout,
+        sets: workoutSets,
+        setsCount: workoutSets.length,
+        totalReps,
+        durationMinutes,
+      };
+    });
+
+    return res.status(200).json(completedWorkouts);
+  } catch (error) {
+    console.error("Ошибка загрузки истории тренировок:", error);
+
+    return res.status(500).json({
+      message: "Не удалось загрузить историю тренировок.",
+    });
+  }
+}
+
 module.exports = {
   getCurrentWorkout,
   finishWorkout,
+  getCompletedWorkouts,
 };
