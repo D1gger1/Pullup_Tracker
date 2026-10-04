@@ -225,6 +225,78 @@ async function deletePullupSet(req, res) {
   }
 }
 
+async function getProgressStats(req, res) {
+  try {
+    const userId = req.user.userId;
+    const period = req.query.period ?? "month";
+
+    const periodDays = {
+      week: 7,
+      month: 30,
+      threeMonths: 90,
+    };
+
+    const daysCount = periodDays[period];
+
+    if (!daysCount) {
+      return res.status(400).json({
+        message: "Допустимые периоды: week, month или threeMonths.",
+      });
+    }
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (daysCount - 1));
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date();
+
+    const sets = await PullupSet.find({
+      userId,
+      performedAt: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    })
+      .select("reps performedAt")
+      .sort({ performedAt: 1 })
+      .lean();
+
+    const totalsByDate = new Map();
+
+    for (const set of sets) {
+      const performedAt = new Date(set.performedAt);
+
+      const year = performedAt.getFullYear();
+      const month = String(performedAt.getMonth() + 1).padStart(2, "0");
+      const day = String(performedAt.getDate()).padStart(2, "0");
+
+      const date = `${year}-${month}-${day}`;
+      const currentTotal = totalsByDate.get(date) ?? 0;
+
+      totalsByDate.set(date, currentTotal + set.reps);
+    }
+
+    const points = Array.from(totalsByDate, ([date, totalReps]) => ({
+      date,
+      totalReps,
+    }));
+
+    const totalReps = sets.reduce((sum, set) => sum + set.reps, 0);
+
+    return res.status(200).json({
+      period,
+      totalReps,
+      points,
+    });
+  } catch (error) {
+    console.error("Ошибка загрузки прогресса:", error);
+
+    return res.status(500).json({
+      message: "Не удалось загрузить прогресс.",
+    });
+  }
+}
+
 module.exports = {
   addPullupSet,
   getPullupSet,
@@ -234,4 +306,5 @@ module.exports = {
   getSummaryStats,
   updatePullupSet,
   deletePullupSet,
+  getProgressStats,
 };

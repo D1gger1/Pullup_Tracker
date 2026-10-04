@@ -1,58 +1,26 @@
 import { useEffect, useState } from 'react';
-import type { PullupSet } from '../types/pullup';
+import { ProgressChart } from '../components/progress/ProgressChart';
+import type { ProgressPeriod, ProgressStats } from '../types/pullup';
 
-type Weekly = {
-  totalReps: number;
-  sets: PullupSet[];
-};
-
-function getDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-}
+const periodOptions: Array<{
+  value: ProgressPeriod;
+  label: string;
+}> = [
+  { value: 'week', label: '1 нед' },
+  { value: 'month', label: '1 мес' },
+  { value: 'threeMonths', label: '3 мес' },
+];
 
 export function ProgressPage() {
-  const [weeklyStats, setWeeklyStats] = useState<Weekly | null>(null);
+  const [activePeriod, setActivePeriod] = useState<ProgressPeriod>('month');
+  const [progressStats, setProgressStats] = useState<ProgressStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const totalsByDay = new Map<string, number>();
-
-  for (const set of weeklyStats?.sets ?? []) {
-    const dateKey = getDateKey(new Date(set.performedAt));
-    const currentTotal = totalsByDay.get(dateKey) ?? 0;
-
-    totalsByDay.set(dateKey, currentTotal + set.reps);
-  }
-
-  const startOfWeek = new Date();
-  const daYOfWeek = startOfWeek.getDay();
-  const daysForMonday = daYOfWeek === 0 ? 6 : daYOfWeek - 1;
-
-  startOfWeek.setDate(startOfWeek.getDate() - daysForMonday);
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const dayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-
-  const weeklyDays = dayLabels.map((label, index) => {
-    const date = new Date(startOfWeek);
-    date.setDate(startOfWeek.getDate() + index);
-
-    return {
-      dateKey: getDateKey(date),
-      label,
-      totalReps: totalsByDay.get(getDateKey(date)) ?? 0,
-    };
-  });
-
-  const maxDailyReps = Math.max(...weeklyDays.map((day) => day.totalReps), 1);
   useEffect(() => {
     let cancelled = false;
 
-    async function checkProgress() {
+    async function loadProgress() {
       const token = localStorage.getItem('pullupTrackerToken');
 
       if (!token) {
@@ -60,11 +28,15 @@ export function ProgressPage() {
           setErrorMessage('Нужно войти в аккаунт.');
           setIsLoading(false);
         }
+
         return;
       }
 
+      setIsLoading(true);
+      setErrorMessage('');
+
       try {
-        const response = await fetch('/api/pullups/stats/weekly', {
+        const response = await fetch(`/api/pullups/stats/progress?period=${activePeriod}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -74,19 +46,20 @@ export function ProgressPage() {
 
         if (!response.ok) {
           if (!cancelled) {
-            setErrorMessage(data.message ?? 'Не удалось загрузить статистику.');
+            setErrorMessage(data.message ?? 'Не удалось загрузить прогресс.');
           }
+
           return;
         }
-        if (!cancelled) {
-          setWeeklyStats(data);
-          setErrorMessage('');
-        }
-      } catch (error) {
-        console.error('Ошибка загрузки подходов:', error);
 
         if (!cancelled) {
-          setErrorMessage('Не удалось загрузить. Проверь соединение.');
+          setProgressStats(data);
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки прогресса:', error);
+
+        if (!cancelled) {
+          setErrorMessage('Не удалось загрузить прогресс. Проверь соединение.');
         }
       } finally {
         if (!cancelled) {
@@ -95,77 +68,80 @@ export function ProgressPage() {
       }
     }
 
-    void checkProgress();
+    void loadProgress();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activePeriod]);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-5 md:px-8 md:py-8">
       <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Прогресс</h1>
+
       <p className="mt-1 text-sm text-zinc-400">
         Следи за объёмом тренировок и изменением результатов
       </p>
-      {isLoading ? (
-        <p className="mt-6 text-sm text-zinc-400">Загружаем прогресс...</p>
-      ) : errorMessage ? (
-        <p role="alert" className="mt-6 text-sm text-red-300">
-          {errorMessage}
-        </p>
-      ) : weeklyStats ? (
-        <div className="mt-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <section className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-              <h2 className="text-xs font-medium text-zinc-400">Повторений за неделю</h2>
 
-              <p className="mt-2 text-3xl font-bold text-zinc-100 tabular-nums">
-                {weeklyStats.totalReps}
+      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-100">Общий объём</h2>
+
+            {progressStats && !errorMessage && (
+              <p className="mt-3 flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-zinc-100 tabular-nums">
+                  {progressStats.totalReps}
+                </span>
+
+                <span className="text-xs text-zinc-400">повторений</span>
               </p>
-            </section>
-
-            <section className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-              <h2 className="text-xs font-medium text-zinc-400">Подходов за неделю</h2>
-
-              <p className="mt-2 text-3xl font-bold text-zinc-100 tabular-nums">
-                {weeklyStats.sets.length}
-              </p>
-            </section>
+            )}
           </div>
 
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-            <h2 className="text-sm font-semibold text-zinc-100">Текущая неделя</h2>
-
-            <div className="mt-6 grid grid-cols-7 gap-2">
-              {weeklyDays.map((day) => {
-                const barHeight =
-                  day.totalReps === 0 ? 0 : Math.max((day.totalReps / maxDailyReps) * 100, 8);
-
-                return (
-                  <div key={day.dateKey} className="flex min-w-0 flex-col items-center">
-                    <span className="mb-2 text-xs text-zinc-400 tabular-nums">{day.totalReps}</span>
-
-                    <div className="flex h-40 w-full items-end justify-center">
-                      <div
-                        title={`${day.label}: ${day.totalReps} повторений`}
-                        className={`w-full max-w-8 rounded-t-lg ${
-                          day.totalReps > 0 ? 'bg-lime-300' : 'bg-zinc-800'
-                        }`}
-                        style={{
-                          height: day.totalReps > 0 ? `${barHeight}%` : '4px',
-                        }}
-                      />
-                    </div>
-
-                    <span className="mt-2 text-xs font-medium text-zinc-500">{day.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          <div
+            role="group"
+            aria-label="Период статистики"
+            className="flex rounded-xl border border-zinc-800 bg-zinc-950 p-1"
+          >
+            {periodOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setActivePeriod(option.value)}
+                aria-pressed={activePeriod === option.value}
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  activePeriod === option.value
+                    ? 'bg-zinc-800 text-zinc-100'
+                    : 'text-zinc-500 hover:text-zinc-200'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
-      ) : null}
+
+        {isLoading ? (
+          <div className="flex min-h-64 items-center justify-center md:min-h-80">
+            <p className="text-sm text-zinc-400">Загружаем прогресс...</p>
+          </div>
+        ) : errorMessage ? (
+          <div className="flex min-h-64 items-center justify-center md:min-h-80">
+            <p role="alert" className="text-sm text-red-300">
+              {errorMessage}
+            </p>
+          </div>
+        ) : progressStats && progressStats.points.length > 0 ? (
+          <div className="mt-6">
+            <ProgressChart points={progressStats.points} />
+          </div>
+        ) : (
+          <div className="flex min-h-64 items-center justify-center text-center md:min-h-80">
+            <p className="text-sm text-zinc-400">За выбранный период пока нет данных.</p>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

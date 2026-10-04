@@ -36,3 +36,16 @@ export type CompletedWorkout = {
   totalReps: number;
   durationMinutes: number;
 };
+
+export type ProgressPeriod = 'week' | 'month' | 'threeMonths';
+
+export type ProgressPoint = {
+  date: string;
+  totalReps: number;
+};
+
+export type ProgressStats = {
+  period: ProgressPeriod;
+  totalReps: number;
+  points: ProgressPoint[];
+};
