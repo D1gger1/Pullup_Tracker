@@ -297,6 +297,95 @@ async function getProgressStats(req, res) {
   }
 }
 
+async function getRecordStats(req, res) {
+  try {
+    const userId = req.user.userId;
+
+    const bestSet = await PullupSet.findOne({
+      userId,
+    })
+      .sort({
+        reps: -1,
+        performedAt: 1,
+      })
+      .select("_id reps performedAt")
+      .lean();
+
+    const completedWorkouts = await Workout.find({
+      userId,
+      status: "completed",
+    })
+      .select("_id startedAt finishedAt")
+      .sort({
+        finishedAt: 1,
+      })
+      .lean();
+
+    const workoutIds = completedWorkouts.map((workout) => workout._id);
+
+    const workoutSets = await PullupSet.find({
+      userId,
+      workoutId: {
+        $in: workoutIds,
+      },
+    })
+      .select("workoutId reps")
+      .lean();
+
+    const statsByWorkoutId = new Map();
+
+    for (const set of workoutSets) {
+      const workoutId = String(set.workoutId);
+
+      const currentStats = statsByWorkoutId.get(workoutId) ?? {
+        totalReps: 0,
+        setsCount: 0,
+      };
+
+      statsByWorkoutId.set(workoutId, {
+        totalReps: currentStats.totalReps + set.reps,
+        setsCount: currentStats.setsCount + 1,
+      });
+    }
+
+    const workoutsWithStats = completedWorkouts.map((workout) => {
+      const workoutStats = statsByWorkoutId.get(String(workout._id)) ?? {
+        totalReps: 0,
+        setsCount: 0,
+      };
+
+      return {
+        ...workout,
+        totalReps: workoutStats.totalReps,
+        setsCount: workoutStats.setsCount,
+      };
+    });
+
+    const bestWorkout = workoutsWithStats.reduce((currentBest, workout) => {
+      if (workout.totalReps === 0) {
+        return currentBest;
+      }
+
+      if (!currentBest || workout.totalReps > currentBest.totalReps) {
+        return workout;
+      }
+
+      return currentBest;
+    }, null);
+
+    return res.status(200).json({
+      bestSet,
+      bestWorkout,
+    });
+  } catch (error) {
+    console.error("Ошибка загрузки рекордов:", error);
+
+    return res.status(500).json({
+      message: "Не удалось загрузить рекорды.",
+    });
+  }
+}
+
 module.exports = {
   addPullupSet,
   getPullupSet,
@@ -307,4 +396,5 @@ module.exports = {
   updatePullupSet,
   deletePullupSet,
   getProgressStats,
+  getRecordStats,
 };
