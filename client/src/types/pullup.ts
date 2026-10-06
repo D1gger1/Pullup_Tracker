@@ -49,3 +49,24 @@ export type ProgressStats = {
   totalReps: number;
   points: ProgressPoint[];
 };
+
+export type BestSetRecord = {
+  _id: string;
+  reps: number;
+  performedAt: string;
+};
+
+export type WorkoutRecord = {
+  _id: string;
+  startedAt: string;
+  finishedAt: string;
+  totalReps: number;
+  setsCount: number;
+};
+
+export type RecordsStats = {
+  bestSet: BestSetRecord | null;
+  bestWorkout: WorkoutRecord | null;
+  mostSetsWorkout: WorkoutRecord | null;
+  longestStreak: number;
+};

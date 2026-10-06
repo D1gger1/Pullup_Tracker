@@ -402,7 +402,7 @@ async function getRecordStats(req, res) {
           return date.getTime();
         }),
       ),
-    ).sort((a, b) => a - b);
+    ).sort((startedAt, finishedAt) => startedAt - finishedAt);
 
     let longestStreak = 0;
     let currentStreak = 0;
