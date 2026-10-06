@@ -373,9 +373,67 @@ async function getRecordStats(req, res) {
       return currentBest;
     }, null);
 
+    const mostSetsWorkout = workoutsWithStats.reduce(
+      (bestWorkout, currentWorkout) => {
+        if (currentWorkout.setsCount === 0) {
+          return bestWorkout;
+        }
+
+        if (bestWorkout === null) {
+          return currentWorkout;
+        }
+
+        if (currentWorkout.setsCount > bestWorkout.setsCount) {
+          return currentWorkout;
+        }
+
+        return bestWorkout;
+      },
+      null,
+    );
+
+    const trainingDays = Array.from(
+      new Set(
+        completedWorkouts.map((workout) => {
+          const date = new Date(workout.startedAt);
+
+          date.setHours(0, 0, 0, 0);
+
+          return date.getTime();
+        }),
+      ),
+    ).sort((a, b) => a - b);
+
+    let longestStreak = 0;
+    let currentStreak = 0;
+    let previousDay = null;
+    const millisecondsInDay = 24 * 60 * 60 * 1000;
+
+    for (const currentDay of trainingDays) {
+      if (previousDay === null) {
+        currentStreak = 1;
+      } else {
+        const diffInDays = Math.round(
+          (currentDay - previousDay) / millisecondsInDay,
+        );
+
+        if (diffInDays === 1) {
+          currentStreak++;
+        } else {
+          currentStreak = 1;
+        }
+      }
+
+      longestStreak = Math.max(longestStreak, currentStreak);
+
+      previousDay = currentDay;
+    }
+
     return res.status(200).json({
       bestSet,
       bestWorkout,
+      mostSetsWorkout,
+      longestStreak,
     });
   } catch (error) {
     console.error("Ошибка загрузки рекордов:", error);
