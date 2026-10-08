@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { authFetch } from '../api/authFetch';
 import type { CompletedWorkout } from '../types/pullup';
 
 type HistoryFilter = 'all' | 'month' | 'best';
@@ -14,23 +15,8 @@ export function HistoryPage() {
     let cancelled = false;
 
     async function loadHistory() {
-      const token = localStorage.getItem('pullupTrackerToken');
-
-      if (!token) {
-        if (!cancelled) {
-          setErrorMessage('Нужно войти в аккаунт.');
-          setIsLoading(false);
-        }
-
-        return;
-      }
-
       try {
-        const response = await fetch('/api/workouts', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await authFetch('/api/workouts');
 
         const data = await response.json();
 

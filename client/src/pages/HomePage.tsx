@@ -4,6 +4,7 @@ import { SummaryCards } from '../components/home/SummaryCards';
 import { AddSetForm } from '../components/home/AddSetForm';
 import { PullupSetItem } from '../components/home/PullupSetItem';
 import { CurrentWorkoutCard } from '../components/home/CurrentWorkoutCard';
+import { authFetch } from '../api/authFetch';
 import type { CurrentWorkout, PullupSet } from '../types/pullup';
 
 type SummaryStats = {
@@ -45,22 +46,8 @@ export function HomePage() {
     let cancelled = false;
 
     async function loadCurrentWorkout() {
-      const token = localStorage.getItem('pullupTrackerToken');
-
-      if (!token) {
-        if (!cancelled) {
-          setWorkoutError('Нужно войти в аккаунт.');
-        }
-
-        return;
-      }
-
       try {
-        const response = await fetch('/api/workouts/current', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await authFetch('/api/workouts/current');
 
         const data = await response.json();
 
@@ -86,22 +73,8 @@ export function HomePage() {
     }
 
     async function loadSummaryStats() {
-      const token = localStorage.getItem('pullupTrackerToken');
-
-      if (!token) {
-        if (!cancelled) {
-          setSummaryError('Войдите в аккаунт, чтобы увидеть показатели.');
-        }
-
-        return;
-      }
-
       try {
-        const response = await fetch('/api/pullups/stats/summary', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await authFetch('/api/pullups/stats/summary');
 
         const data = await response.json();
 
@@ -127,22 +100,8 @@ export function HomePage() {
     }
 
     async function loadCurrentStreak() {
-      const token = localStorage.getItem('pullupTrackerToken');
-
-      if (!token) {
-        if (!cancelled) {
-          setStreakError('Войдите в аккаунт, чтобы увидеть серию.');
-        }
-
-        return;
-      }
-
       try {
-        const response = await fetch('/api/pullups/stats/streak', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await authFetch('/api/pullups/stats/streak');
 
         const data = await response.json();
 
@@ -179,22 +138,12 @@ export function HomePage() {
   async function handleFinishWorkout() {
     if (!currentWorkout?.workout || isFinishingWorkout) return;
 
-    const token = localStorage.getItem('pullupTrackerToken');
-
-    if (!token) {
-      setWorkoutError('Нужно войти в аккаунт.');
-      return;
-    }
-
     setWorkoutError('');
     setIsFinishingWorkout(true);
 
     try {
-      const response = await fetch(`/api/workouts/${currentWorkout.workout._id}/finish`, {
+      const response = await authFetch(`/api/workouts/${currentWorkout.workout._id}/finish`, {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       const data = await response.json();
@@ -268,25 +217,15 @@ export function HomePage() {
       return;
     }
 
-    const token = localStorage.getItem('pullupTrackerToken');
-
-    if (!token) {
-      setEditError('Нужно войти в аккаунт.');
-      return;
-    }
-
     setIsUpdating(true);
 
     try {
-      const response = await fetch(`/api/pullups/${editingSetId}`, {
+      const response = await authFetch(`/api/pullups/${editingSetId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          reps: repetitions,
-        }),
+        body: JSON.stringify({ reps: repetitions }),
       });
 
       const data = await response.json();
@@ -312,23 +251,13 @@ export function HomePage() {
 
     setDeleteError('');
 
-    const token = localStorage.getItem('pullupTrackerToken');
-
-    if (!token) {
-      setDeleteError('Нужно войти в аккаунт.');
-      return;
-    }
-
     const idToDelete = deletingSetId;
 
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/pullups/${idToDelete}`, {
+      const response = await authFetch(`/api/pullups/${idToDelete}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       const data = await response.json();
@@ -363,27 +292,18 @@ export function HomePage() {
       return;
     }
 
-    const token = localStorage.getItem('pullupTrackerToken');
-
-    if (!token) {
-      setErrorMessage('Нужно войти в аккаунт.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/pullups', {
+      const response = await authFetch('/api/pullups', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           reps: repetitions,
         }),
       });
-
       const data = await response.json();
 
       if (!response.ok) {

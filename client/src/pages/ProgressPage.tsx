@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ProgressChart } from '../components/progress/ProgressChart';
+import { authFetch } from '../api/authFetch';
 import type { ProgressPeriod, ProgressStats } from '../types/pullup';
 
 const periodOptions: Array<{
@@ -21,27 +22,10 @@ export function ProgressPage() {
     let cancelled = false;
 
     async function loadProgress() {
-      const token = localStorage.getItem('pullupTrackerToken');
-
-      if (!token) {
-        if (!cancelled) {
-          setErrorMessage('Нужно войти в аккаунт.');
-          setIsLoading(false);
-        }
-
-        return;
-      }
-
       setIsLoading(true);
       setErrorMessage('');
-
       try {
-        const response = await fetch(`/api/pullups/stats/progress?period=${activePeriod}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
+        const response = await authFetch(`/api/pullups/stats/progress?period=${activePeriod}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -88,7 +72,7 @@ export function ProgressPage() {
           <div>
             <h2 className="text-sm font-semibold text-zinc-100">Общий объём</h2>
 
-            {progressStats && !errorMessage && (
+            {progressStats && !errorMessage && !isLoading && (
               <p className="mt-3 flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-zinc-100 tabular-nums">
                   {progressStats.totalReps}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { authFetch } from '../api/authFetch';
 import type { RecordsStats } from '../types/pullup';
 
 function formatRecordDate(date: string | undefined) {
@@ -22,26 +23,8 @@ export function RecordsPage() {
     let cancelled = false;
 
     async function loadRecords() {
-      const token = localStorage.getItem('pullupTrackerToken');
-
-      if (!token) {
-        if (!cancelled) {
-          setErrorMessage('Нужно войти в аккаунт.');
-          setIsLoading(false);
-        }
-
-        return;
-      }
-
-      setIsLoading(true);
-      setErrorMessage('');
-
       try {
-        const response = await fetch('/api/pullups/stats/records', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await authFetch('/api/pullups/stats/records');
 
         const data = await response.json();
 
