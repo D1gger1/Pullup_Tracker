@@ -77,6 +77,8 @@ A full-stack workout tracker built with **React · TypeScript · Express · Mong
 | Authentication | JSON Web Tokens, bcryptjs |
 | Code quality | ESLint, Prettier |
 
+[🚀 Live Demo](https://puliuptracker.netlify.app/)
+
 ## Quick start
 
 ### Before you begin
