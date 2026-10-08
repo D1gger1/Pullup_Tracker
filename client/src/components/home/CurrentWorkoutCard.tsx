@@ -42,7 +42,7 @@ export function CurrentWorkoutCard({
             </p>
           </div>
 
-          <div className="flex items-end justify-between gap-4 border-t border-zinc-800 pt-4">
+          <div className="flex flex-wrap items-end justify-between gap-4 border-t border-zinc-800 pt-4">
             <div>
               <p className="text-xs text-zinc-400">Всего в тренировке</p>
               <p className="mt-1 text-xl font-bold text-zinc-100">0 повторений</p>
@@ -61,7 +61,7 @@ export function CurrentWorkoutCard({
         <>
           <div className="mt-4 max-h-64 overflow-y-auto pr-1">{children}</div>
 
-          <div className="mt-5 flex items-end justify-between gap-4 border-t border-zinc-800 pt-4">
+          <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-zinc-800 pt-4">
             <div>
               <p className="text-xs text-zinc-400">Всего в тренировке</p>
 

@@ -330,8 +330,8 @@ export function HomePage() {
         Каждый подход — шаг вперёд. Запиши свой результат
       </p>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3 lg:items-stretch">
-        <div className="lg:col-span-2 lg:flex">
+      <div className="mt-6 grid gap-4 xl:grid-cols-3 xl:items-stretch">
+        <div className="xl:col-span-2 xl:flex">
           <AddSetForm
             reps={reps}
             isBusy={isBusy}
