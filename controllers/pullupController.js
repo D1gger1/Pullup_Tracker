@@ -185,7 +185,7 @@ async function updatePullupSet(req, res) {
     const updatedSet = await PullupSet.findOneAndUpdate(
       { _id: id, userId },
       { $set: { reps } },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
 
     if (!updatedSet) {

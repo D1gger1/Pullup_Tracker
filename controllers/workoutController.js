@@ -63,7 +63,7 @@ async function finishWorkout(req, res) {
         },
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       },
     );
