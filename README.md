@@ -24,7 +24,7 @@ A full-stack workout tracker built with **React · TypeScript · Express · Mong
 <br />
 <br />
 
-[Features](#features) &nbsp; · &nbsp; [Quick start](#quick-start) &nbsp; · &nbsp; [Pages](#pages) &nbsp; · &nbsp; [API reference](#api-reference)
+[Features](#features) &nbsp; · &nbsp; [Quick start](#quick-start) &nbsp; · &nbsp; [Deployment](#deployment) &nbsp; · &nbsp; [Pages](#pages) &nbsp; · &nbsp; [API reference](#api-reference)
 
 </div>
 
@@ -119,10 +119,11 @@ MONGODB_URI=mongodb://127.0.0.1:27017/pullup_tracker
 JWT_SECRET=replace_with_a_random_secret
 ```
 
-| Variable | Purpose |
-| --- | --- |
-| `MONGODB_URI` | MongoDB connection string |
-| `JWT_SECRET` | Secret used to sign and verify authentication tokens |
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `MONGODB_URI` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | Secret used to sign and verify authentication tokens |
+| `PORT` | No | Port the API listens on. Defaults to `3000`; hosting platforms usually set it automatically |
 
 The MongoDB URL above is a local example. Replace it with your connection string if using a hosted database.
 
@@ -142,7 +143,7 @@ From the repository root:
 node index.js
 ```
 
-The API runs at `http://localhost:3000`. The port is currently set in `index.js`.
+The API listens on the port from the `PORT` environment variable and falls back to `3000` when it is not set. The development proxy in the next step expects port `3000`, so leave `PORT` unset for local development.
 
 ### 05 · Start the app
 
@@ -172,9 +173,36 @@ Run these commands from `client`:
 | `npm run format:check` | Check formatting with Prettier |
 | `npm run format` | Format files with Prettier |
 
-> **Deployment note**
+## Deployment
+
+The live demo runs as two separate services:
+
+| Part | Hosting | What runs there |
+| --- | --- | --- |
+| Frontend | Netlify | Static bundle built from `client` with `npm run build` (output in `client/dist`) |
+| Backend | Render | Express API started with `node index.js`, connected to a hosted MongoDB database |
+
+The frontend always calls relative `/api/...` URLs. In development, the Vite proxy forwards them to `localhost:3000`. In production, [`client/public/_redirects`](client/public/_redirects) does the same job on Netlify:
+
+```text
+/api/*  https://pullup-tracker-api.onrender.com/api/:splat  200
+/*      /index.html                                          200
+```
+
+- **First rule:** requests to `/api/*` are proxied to the backend. Status `200` makes this a rewrite rather than a redirect, so the browser keeps talking to the frontend's own domain and no CORS configuration is needed.
+- **Second rule:** every other path serves `index.html`, so reloading a page such as `/history` lets React Router handle the route instead of returning a 404.
+
+Environment variables for the backend host:
+
+| Variable | Notes |
+| --- | --- |
+| `MONGODB_URI` | Connection string of the hosted MongoDB database |
+| `JWT_SECRET` | A long random value, different from the local one |
+| `PORT` | Provided by the hosting platform, no need to set it manually |
+
+> **Note**
 >
-> The API proxy is configured for development. For production or a fully functional build preview, route `/api` to the backend through the hosting server or configure a suitable API base URL and cross-origin access. A production deployment configuration is not yet included.
+> If the backend runs on a free hosting tier, the first request after a period of inactivity may take noticeably longer while the service wakes up.
 
 ## Pages
 
@@ -242,6 +270,7 @@ Authorization: Bearer <token>
 | `client/src/pages/` | Authentication, overview, history, progress, and records pages |
 | `client/src/components/` | Layout, navigation, workout cards, forms, and chart |
 | `client/src/types/` | TypeScript types for API data |
+| `client/public/_redirects` | Netlify rules: API proxy and single-page-app fallback |
 | `config/` | Database connection |
 | `controllers/` | Authentication, set, workout, and statistics logic |
 | `middleware/` | JWT verification |
