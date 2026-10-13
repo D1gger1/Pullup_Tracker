@@ -23,7 +23,7 @@ export function AddSetForm({
       <p className="text-[10px] font-extrabold tracking-[0.18em] text-lime-300 uppercase">
         Быстрый подход
       </p>
-      <h2 className="text-zinc-10 mt-2 text-lg font-bold">Сколько повторений?</h2>
+      <h2 className="mt-2 text-lg font-bold text-zinc-100">Сколько повторений?</h2>
 
       <form className="mt-4 space-y-4" onSubmit={onSubmit}>
         <div className="py-6">
