@@ -33,6 +33,7 @@ A full-stack workout tracker built with **React · TypeScript · Express · Mong
 ## Overview
 
 **REP / TRACK** brings active workouts, training history, progress charts, and personal records into one responsive dark interface. Record a set, finish a workout, and review how your training volume changes over time.
+[🚀 Live Demo](https://puliuptracker.netlify.app/)
 
 ## Features
 
@@ -76,6 +77,7 @@ A full-stack workout tracker built with **React · TypeScript · Express · Mong
 | Database | MongoDB, Mongoose |
 | Authentication | JSON Web Tokens, bcryptjs |
 | Code quality | ESLint, Prettier |
+
 
 ## Quick start
 
