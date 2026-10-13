@@ -47,21 +47,12 @@ export function ProgressChart({ points }: ProgressChartProps) {
             tick={{ fill: '#71717a', fontSize: 12 }}
           />
 
-          <YAxis hide allowDecimals={false} domain={[0, 'auto']} />
-
-          <XAxis
-            dataKey="date"
-            tickFormatter={formatDate}
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: '#71717a', fontSize: 12 }}
-          />
-
           <YAxis
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#71717a', fontSize: 12 }}
             allowDecimals={false}
+            domain={[0, 'auto']}
           />
 
           <Tooltip
