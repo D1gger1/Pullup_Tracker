@@ -232,14 +232,11 @@ Authorization: Bearer <token>
 | `POST` | `/api/auth/register` | Register with `name`, `email`, and `password` |
 | `POST` | `/api/auth/login` | Sign in with `email` and `password`; receive a JWT |
 | `POST` | `/api/pullups` | Add a set with `{ "reps": 5 }` |
-| `GET` | `/api/pullups` | Retrieve the signed-in user's sets |
 | `PATCH` | `/api/pullups/:id` | Update repetitions with `{ "reps": 7 }` |
 | `DELETE` | `/api/pullups/:id` | Delete a set |
 | `GET` | `/api/workouts/current` | Retrieve the active workout and its sets |
 | `PATCH` | `/api/workouts/:id/finish` | Finish an active workout |
 | `GET` | `/api/workouts` | Retrieve completed workouts |
-| `GET` | `/api/pullups/stats/daily` | Retrieve today's sets and total repetitions |
-| `GET` | `/api/pullups/stats/weekly` | Retrieve the current calendar week's statistics |
 | `GET` | `/api/pullups/stats/streak` | Retrieve the current training streak |
 | `GET` | `/api/pullups/stats/summary` | Retrieve overview statistics |
 | `GET` | `/api/pullups/stats/progress?period=month` | Retrieve chart data; accepts `week`, `month`, or `threeMonths` |
