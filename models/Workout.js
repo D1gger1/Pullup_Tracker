@@ -25,6 +25,11 @@ const workoutSchema = new Schema({
   },
 });
 
+workoutSchema.index(
+  { userId: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: "active" } },
+);
+
 const Workout = mongoose.model("Workout", workoutSchema);
 
 module.exports = Workout;

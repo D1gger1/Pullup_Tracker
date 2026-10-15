@@ -18,9 +18,16 @@ async function addPullupSet(req, res) {
     }).sort({ startedAt: -1 });
 
     if (!activeWorkout) {
-      activeWorkout = await Workout.create({
-        userId,
-      });
+      try {
+        activeWorkout = await Workout.create({ userId });
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+
+        activeWorkout = await Workout.findOne({
+          userId,
+          status: "active",
+        }).sort({ startedAt: -1 });
+      }
     }
 
     const newPullupSet = await PullupSet.create({
