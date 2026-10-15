@@ -9,7 +9,19 @@ async function registerUser(req, res) {
     await newUser.save();
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.code === 11000) {
+      return res
+        .status(409)
+        .json({ error: "Пользователь с таким email уже зарегистрирован." });
+    }
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ error: "Проверьте введённые данные." });
+    }
+
+    console.error("Ошибка регистрации:", err);
+    res
+      .status(500)
+      .json({ error: "Не удалось выполнить регистрацию. Попробуйте позже." });
   }
 }
 
@@ -31,19 +43,10 @@ async function loginUser(req, res) {
       }
     }
   } catch (err) {
-    if (err.code === 11000) {
-      res
-        .status(409)
-        .json({ error: "Пользователь с таким email уже зарегистрирован." });
-    }
-    if (err.name === "ValidationError") {
-      res.status(400).json({ error: "Проверьте введённые данные." });
-    }
-
-    console.error("Ошибка регистрации:", err);
+    console.error("Ошибка входа:", err);
     res
       .status(500)
-      .json({ error: "Не удалось выполнить регистрацию. Попробуйте позже." });
+      .json({ error: "Не удалось выполнить вход. Попробуйте позже." });
   }
 }
 
