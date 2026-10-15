@@ -23,6 +23,10 @@ const pullupSetSchema = new Schema({
   },
 });
 
+pullupSetSchema.index({ userId: 1, performedAt: -1 });
+
+pullupSetSchema.index({ userId: 1, workoutId: 1, performedAt: 1 });
+
 const PullupSet = mongoose.model("PullupSet", pullupSetSchema);
 
 module.exports = PullupSet;
