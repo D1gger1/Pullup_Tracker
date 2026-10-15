@@ -6,11 +6,6 @@ export type PullupSet = {
   performedAt: string;
 };
 
-export type DailyStats = {
-  totalReps: number;
-  sets: PullupSet[];
-};
-
 export type Workout = {
   _id: string;
   userId: string;
