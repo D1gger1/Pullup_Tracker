@@ -254,7 +254,7 @@ Authorization: Bearer <token>
 - Set creation, updates, and deletion are scoped to the authenticated user's ID.
 - Repetitions must be a positive integer.
 - The progress chart uses rolling 7-, 30-, and 90-day periods. The overview's monthly total and history's month filter use the current calendar month.
-- The current streak is based on days with recorded sets; the longest streak is based on the start dates of completed workouts.
+- The current and longest streaks are both based on days with recorded sets.
 - Backend day boundaries use the server's local time zone. Displayed dates and times use the browser's local time zone.
 
 </details>
