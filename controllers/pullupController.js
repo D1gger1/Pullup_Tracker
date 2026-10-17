@@ -1,5 +1,10 @@
 const PullupSet = require("../models/PullupSet");
 const Workout = require("../models/Workout");
+const {
+  getTrainingDays,
+  calculateCurrentStreak,
+  calculateLongestStreak,
+} = require("../utils/streak");
 
 async function addPullupSet(req, res) {
   try {
@@ -50,31 +55,11 @@ async function getCurrentStreak(req, res) {
   try {
     const userId = req.user.userId;
 
-    const sets = await PullupSet.find({ userId })
-      .select("performedAt")
-      .sort({ performedAt: -1 });
+    const sets = await PullupSet.find({ userId }).select("performedAt").lean();
 
-    const trainingDays = new Set(
-      sets.map((set) => {
-        const date = new Date(set.performedAt);
-        date.setHours(0, 0, 0, 0);
-        return date.getTime();
-      }),
-    );
+    const trainingDays = getTrainingDays(sets.map((set) => set.performedAt));
+    const currentStreak = calculateCurrentStreak(trainingDays);
 
-    const currentDay = new Date();
-    currentDay.setHours(0, 0, 0, 0);
-
-    let currentStreak = 0;
-
-    if (!trainingDays.has(currentDay.getTime())) {
-      currentDay.setDate(currentDay.getDate() - 1);
-    }
-
-    while (trainingDays.has(currentDay.getTime())) {
-      currentStreak += 1;
-      currentDay.setDate(currentDay.getDate() - 1);
-    }
     res.status(200).json({ currentStreak });
   } catch (err) {
     res.status(500).json({ message: "Не удалось загрузить текущую серию." });
@@ -339,42 +324,11 @@ async function getRecordStats(req, res) {
       null,
     );
 
-    const trainingDays = Array.from(
-      new Set(
-        completedWorkouts.map((workout) => {
-          const date = new Date(workout.startedAt);
-
-          date.setHours(0, 0, 0, 0);
-
-          return date.getTime();
-        }),
-      ),
-    ).sort((startedAt, finishedAt) => startedAt - finishedAt);
-
-    let longestStreak = 0;
-    let currentStreak = 0;
-    let previousDay = null;
-    const millisecondsInDay = 24 * 60 * 60 * 1000;
-
-    for (const currentDay of trainingDays) {
-      if (previousDay === null) {
-        currentStreak = 1;
-      } else {
-        const diffInDays = Math.round(
-          (currentDay - previousDay) / millisecondsInDay,
-        );
-
-        if (diffInDays === 1) {
-          currentStreak++;
-        } else {
-          currentStreak = 1;
-        }
-      }
-
-      longestStreak = Math.max(longestStreak, currentStreak);
-
-      previousDay = currentDay;
-    }
+    const allSets = await PullupSet.find({ userId })
+      .select("performedAt")
+      .lean();
+    const trainingDays = getTrainingDays(allSets.map((set) => set.performedAt));
+    const longestStreak = calculateLongestStreak(trainingDays);
 
     return res.status(200).json({
       bestSet,
